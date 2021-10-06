@@ -21,50 +21,37 @@ class image_identifier:
         return hex_list
 
     def pie_chart(self, sorted_colors):
-        print()
         labels = list()
         sizes = list()
         for color in sorted_colors:
-            print(color[0], color[1])
             labels.append(str(color[0]))
             sizes.append(color[1])
-
-        print(labels)
-        print(sizes)
-        colors = self.rgb_to_hex(labels)
-
-        plt.pie(sizes, labels=labels, labeldistance=1.15, colors=colors)
-
+        plt.pie(sizes, labels=labels, labeldistance=1.15, colors=self.rgb_to_hex(labels))
         plt.show()
 
     @staticmethod
-    def sort_colors(by_color, most_common=200, max_keys=10):
-        keys = Counter(by_color).most_common(most_common)
-        minimum_percentage = 1
-        # TODO: Shaders aren't removed correctly. This displays colors too similar to the others.
-        while len(keys) >= max_keys:
-            for index, key in enumerate(keys):
-                if index + 1 < len(keys) and index - 1 >= 0:
-                    r1 = keys[index][0][0]
-                    g1 = keys[index][0][1]
-                    b1 = keys[index][0][2]
+    def sort_colors(by_color, most_common=300, minimum_percentage_similarity=2):
+        most_common_rgb = Counter(by_color).most_common(most_common)
+        common_rgb_clone = most_common_rgb.copy()
 
-                    r2 = keys[index + 1][0][0]
-                    g2 = keys[index + 1][0][1]
-                    b2 = keys[index + 1][0][2]
+        for rgb_index in range(len(common_rgb_clone)):
+            for rgb_index2 in range(rgb_index + 1, len(common_rgb_clone)):
+                r1 = common_rgb_clone[rgb_index][0][0]
+                g1 = common_rgb_clone[rgb_index][0][1]
+                b1 = common_rgb_clone[rgb_index][0][2]
 
-                    distance = math.sqrt(math.pow((r2 - r1), 2) + math.pow((g2 - g1), 2) + math.pow((b2 - b1), 2))
-                    percentage = int(
-                        (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100)
+                r2 = common_rgb_clone[rgb_index2][0][0]
+                g2 = common_rgb_clone[rgb_index2][0][1]
+                b2 = common_rgb_clone[rgb_index2][0][2]
 
-                    # print(f"{keys[index]}, {keys[index + 1]}, Difference: {percentage}%")
-                    if percentage <= minimum_percentage:
-                        # print(percentage, "<", minimum_percentage)
-                        keys.remove(keys[index + 1])
-            minimum_percentage += 1
+                distance = math.sqrt(math.pow((r2 - r1), 2) + math.pow((g2 - g1), 2) + math.pow((b2 - b1), 2))
+                percentage = (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100
 
-        print(len(keys), keys)
-        return keys
+                if percentage <= minimum_percentage_similarity:
+                    if common_rgb_clone[rgb_index2] in most_common_rgb:
+                        most_common_rgb.remove(common_rgb_clone[rgb_index2])
+
+        return most_common_rgb
 
     def image_main_colors(self, image):
         by_color = defaultdict(int)
@@ -95,7 +82,6 @@ class file_manager(image_identifier):
                 self.image_main_colors(image)
 
     def get_designer_images(self):
-        print(self.get_files_list(self.designer_directory))
         self.get_image(self.designer_directory, self.get_files_list(self.designer_directory))
 
 
@@ -111,9 +97,9 @@ class image_scrape(file_manager):
         req = Request(url, headers=headers)
         response = urlopen(req).read()
         soup = BeautifulSoup(response, "html.parser", from_encoding="gzip")
-        soup_attempt2 = soup.find_all('img', {"class": 'lv-smart-picture__object'})
+        soup_images = soup.find_all('img', {"class": 'lv-smart-picture__object'})
 
-        for url in soup_attempt2:
+        for url in soup_images:
             image_sources = url.get('data-srcset')
             # designer_images = (image_sources.split(','), '\n')
 
