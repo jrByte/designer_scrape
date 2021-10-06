@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 
 class image_identifier:
     def __init__(self):
-        pass
+        self.by_color = defaultdict(int)
+        self.sorted_colors = None
 
     @staticmethod
     def rgb_to_hex(rgb_list):
@@ -20,18 +21,20 @@ class image_identifier:
             hex_list.append(hex_value)
         return hex_list
 
-    def pie_chart(self, sorted_colors):
-        labels = list()
-        sizes = list()
-        for color in sorted_colors:
-            labels.append(str(color[0]))
-            sizes.append(color[1])
-        plt.pie(sizes, labels=labels, labeldistance=1.15, colors=self.rgb_to_hex(labels))
-        plt.show()
+    def pie_chart(self):
+        if self.sorted_colors:
+            labels = list()
+            sizes = list()
+            for color in self.sorted_colors:
+                labels.append(str(color[0]))
+                sizes.append(color[1])
+            plt.pie(sizes, labels=labels, labeldistance=1.15, colors=self.rgb_to_hex(labels))
+            plt.show()
+        else:
+            raise "Must call get_image_main_colors() first before calling pie_chart()"
 
-    @staticmethod
-    def sort_colors(by_color, most_common=300, minimum_percentage_similarity=2):
-        most_common_rgb = Counter(by_color).most_common(most_common)
+    def most_common_colors(self, most_common=300, minimum_percentage_similarity=2):
+        most_common_rgb = Counter(self.by_color).most_common(most_common)
         common_rgb_clone = most_common_rgb.copy()
 
         for rgb_index in range(len(common_rgb_clone)):
@@ -53,14 +56,12 @@ class image_identifier:
 
         return most_common_rgb
 
-    def image_main_colors(self, image):
-        by_color = defaultdict(int)
+    def get_image_main_colors(self, image):
+        self.by_color = defaultdict(int)
         for pixel in image.getdata():
-            by_color[pixel] += 1
-
-        sorted_colors = self.sort_colors(by_color)
-        self.pie_chart(sorted_colors)
-        return sorted_colors
+            self.by_color[pixel] += 1
+        self.sorted_colors = self.most_common_colors()
+        return self.sorted_colors
 
 
 class file_manager(image_identifier):
@@ -79,7 +80,7 @@ class file_manager(image_identifier):
     def get_image(self, directory, files):
         for file_name in files:
             with Image.open(f'{directory}/{file_name}') as image:
-                self.image_main_colors(image)
+                self.get_image_main_colors(image)
 
     def get_designer_images(self):
         self.get_image(self.designer_directory, self.get_files_list(self.designer_directory))
@@ -105,6 +106,6 @@ class image_scrape(file_manager):
 
 
 if __name__ == "__main__":
-    fm = file_manager(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/pattern/designer_images")
+    fm = file_manager(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images")
     fm.get_designer_images()
-    # fm.pie_chart()
+    fm.pie_chart()
