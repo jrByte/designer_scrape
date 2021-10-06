@@ -1,6 +1,7 @@
 import math
 from PIL import Image
 import os
+import urllib
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
@@ -87,25 +88,48 @@ class file_manager(image_identifier):
 
 
 class image_scrape(file_manager):
-    def __init__(self, designer_directory):
+    def __init__(self, designer_directory, designer_website):
         super().__init__(designer_directory)
-        self.website = 'https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8'
+        self.website = designer_website
+        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
 
     # TODO: USE VPN, create reliable method to fetch all images.
     def fetch_images(self):
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
         url = self.website
-        req = Request(url, headers=headers)
+        req = Request(url, headers=self.headers)
         response = urlopen(req).read()
         soup = BeautifulSoup(response, "html.parser", from_encoding="gzip")
         soup_images = soup.find_all('img', {"class": 'lv-smart-picture__object'})
 
+        clean_url_images = list()
         for url in soup_images:
             image_sources = url.get('data-srcset')
-            # designer_images = (image_sources.split(','), '\n')
+            urls = (image_sources.split(','), '\n')
+            for url_records in urls:
+                for url in url_records:
+                    url = url[:url.rfind(" ")]
+                    url = url.replace(" ", "")
+                    if url.rfind("wid=1080&hei=1080") != -1:
+                        clean_url_images.append(url)
+
+        print(clean_url_images)
+        self.download_image(clean_url_images)
+
+    def download_image(self, url_images):
+        for url in url_images:
+            file_name = url[url.rfind("/images/")+8:url.find("%20view.png?")]
+            print("Fetching Image:", file_name)
+            # TODO: Headers need to be added to the urllib.request to save the images.
+            # opener = urllib.request.build_opener()
+            # opener.addheaders = [self.headers]
+            # urllib.request.install_opener(opener)
+            urllib.request.urlretrieve(url, f"designer_images/{file_name}.png")
 
 
 if __name__ == "__main__":
-    fm = file_manager(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images")
-    fm.get_designer_images()
-    fm.pie_chart()
+    image_s = image_scrape(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images",
+                           designer_website='https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8')
+
+    image_s.fetch_images()
+    # image_s.get_designer_images()
+    # image_s.pie_chart()
