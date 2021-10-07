@@ -34,7 +34,7 @@ class image_identifier:
         else:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
 
-    def most_common_colors(self, most_common=300, minimum_percentage_similarity=2):
+    def most_common_colors(self, most_common=300, minimum_percentage_similarity=10):
         most_common_rgb = Counter(self.by_color).most_common(most_common)
         common_rgb_clone = most_common_rgb.copy()
 
@@ -58,9 +58,11 @@ class image_identifier:
         return most_common_rgb
 
     def get_image_main_colors(self, image):
+        image = image.convert("RGB")
         self.by_color = defaultdict(int)
         for pixel in image.getdata():
-            self.by_color[pixel] += 1
+            if pixel != (0, 0, 0) and pixel != (255, 255, 255):
+                self.by_color[pixel] += 1
         self.sorted_colors = self.most_common_colors()
         return self.sorted_colors
 
@@ -81,7 +83,9 @@ class file_manager(image_identifier):
     def get_image(self, directory, files):
         for file_name in files:
             with Image.open(f'{directory}/{file_name}') as image:
+                print(f"Analysing: {file_name}")
                 self.get_image_main_colors(image)
+                self.pie_chart()
 
     def get_designer_images(self):
         self.get_image(self.designer_directory, self.get_files_list(self.designer_directory))
@@ -91,7 +95,8 @@ class image_scrape(file_manager):
     def __init__(self, designer_directory, designer_website):
         super().__init__(designer_directory)
         self.website = designer_website
-        self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
 
     # TODO: USE VPN, create reliable method to fetch all images.
     def fetch_images(self):
@@ -117,12 +122,12 @@ class image_scrape(file_manager):
 
     def download_image(self, url_images):
         for url in url_images:
-            file_name = url[url.rfind("/images/")+8:url.find("%20view.png?")]
+            file_name = url[url.rfind("/images/") + 8:url.find("%20view.png?")]
             print("Fetching Image:", file_name)
-            # TODO: Headers need to be added to the urllib.request to save the images.
-            # opener = urllib.request.build_opener()
-            # opener.addheaders = [self.headers]
-            # urllib.request.install_opener(opener)
+            opener = urllib.request.build_opener()
+            opener.addheaders = [
+                ('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)')]
+            urllib.request.install_opener(opener)
             urllib.request.urlretrieve(url, f"designer_images/{file_name}.png")
 
 
@@ -131,5 +136,5 @@ if __name__ == "__main__":
                            designer_website='https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8')
 
     image_s.fetch_images()
-    # image_s.get_designer_images()
-    # image_s.pie_chart()
+    image_s.get_designer_images()
+    image_s.pie_chart()
