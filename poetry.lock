@@ -115,6 +115,17 @@ pyparsing = ">=2.2.1"
 python-dateutil = ">=2.7"
 
 [[package]]
+name = "mplcursors"
+version = "0.4"
+description = "Interactive data selection cursors for Matplotlib."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+matplotlib = ">=3.1"
+
+[[package]]
 name = "networkx"
 version = "2.6.2"
 description = "Python package for creating and manipulating graphs and networks"
@@ -345,7 +356,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "514a425257df7f83d57b9324310e0555c46764d13b0cec5e3864210777ae2aac"
+content-hash = "22bbc316f7c069d9b1f553c6147a14dcc40269077649c514de0566daa7a53469"
 
 [metadata.files]
 beautifulsoup4 = [
@@ -449,6 +460,9 @@ matplotlib = [
     {file = "matplotlib-3.4.3-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:556965514b259204637c360d213de28d43a1f4aed1eca15596ce83f768c5a56f"},
     {file = "matplotlib-3.4.3-pp37-pypy37_pp73-manylinux2010_x86_64.whl", hash = "sha256:54a026055d5f8614f184e588f6e29064019a0aa8448450214c0b60926d62d919"},
     {file = "matplotlib-3.4.3.tar.gz", hash = "sha256:fc4f526dfdb31c9bd6b8ca06bf9fab663ca12f3ec9cdf4496fb44bc680140318"},
+]
+mplcursors = [
+    {file = "mplcursors-0.4.tar.gz", hash = "sha256:a8646437e35acab37dc07ef0fca6bc8f66ffbae99d4d5a441ea254a94aed1d24"},
 ]
 networkx = [
     {file = "networkx-2.6.2-py3-none-any.whl", hash = "sha256:5fcb7004be69e8fbdf07dcb502efa5c77cadcaad6982164134eeb9721f826c2e"},
