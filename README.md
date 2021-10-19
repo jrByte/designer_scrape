@@ -15,6 +15,5 @@ Currently the algorithm individually searches through every pixel and identifies
 https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/
 
 ## Agenda
-- The pie chart will be sorted in the upcoming commits to be sorted in a rainbow. Starting with red.
 - Color algorithm is planned on being improved with object recognition in the images to identifiy symbols that use particular colors for more accurate color identification.
 - Expansion of other designer brands being scraped and including price points of each color. Note: Louis Vuitton doesn't display this, but other brands like Gucci do.

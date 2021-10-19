@@ -7,7 +7,6 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
 import matplotlib.pyplot as plt
-import mplcursors
 
 
 class image_identifier:
@@ -38,7 +37,8 @@ class image_identifier:
                 labels.append(str(color[0]))
                 sizes.append(color[1])
             # labels=labels, labeldistance=2
-            plt.pie(sizes, colors=self.rgb_to_hex(labels))
+            plt.pie(sizes, colors=sorted(self.rgb_to_hex(labels)))
+            plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight')
             plt.show()
         else:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
