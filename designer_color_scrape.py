@@ -38,7 +38,7 @@ class image_identifier:
                 sizes.append(color[1])
             # labels=labels, labeldistance=2
             plt.pie(sizes, colors=sorted(self.rgb_to_hex(labels)))
-            plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight')
+            plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight', dpi=500)
             plt.show()
         else:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
@@ -105,19 +105,20 @@ class file_manager(image_identifier):
 
 
 class image_scrape(file_manager):
-    def __init__(self, designer_directory, designer_website, minimum_percentage_similarity):
+    def __init__(self, designer_directory, designer_website, minimum_percentage_similarity, image_limit):
         super().__init__(designer_directory, minimum_percentage_similarity)
         self.website = designer_website
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
         self.image_count = 0
+        self.image_limit = image_limit
 
     # USE VPN.
     def fetch_louis_vuitton_pages(self):
         website_copy = str(self.website)
         page_dne = True
-        count = 1
-        while page_dne:
+        count = 0
+        while count <= self.image_limit and page_dne:
             print("Page:", count)
             try:
                 self.website += f"?page={count}"
@@ -128,8 +129,8 @@ class image_scrape(file_manager):
                 page_dne = False
 
             self.website = website_copy
-            if self.image_count >= 200:
-                print("Image count reached...", self.image_count)
+            if self.image_count >= self.image_limit:
+                print(f"Image count reached: {self.image_limit}")
                 break
 
     # USE VPN.
@@ -164,12 +165,14 @@ class image_scrape(file_manager):
             urllib.request.urlretrieve(url, f"designer_images/{file_name}.png")
             file_name += 1
             self.image_count += 1
+            if self.image_count >= self.image_limit:
+                break
 
 
 if __name__ == "__main__":
-    image_s = image_scrape(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images",
+    image_s = image_scrape(designer_directory="/Users/Jonas/Desktop/GitHub/Python/designer_scrape/designer_images",
                            designer_website='https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8',
-                           minimum_percentage_similarity=20)
+                           minimum_percentage_similarity=20, image_limit=30)
 
     # image_s.fetch_louis_vuitton_pages()
     image_s.get_designer_images()
