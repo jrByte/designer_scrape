@@ -25,7 +25,7 @@ class image_identifier:
             hex_list.append(hex_value)
         return hex_list
 
-    def pie_chart(self, individual_images=True):
+    def pie_chart(self, individual_images):
         colors = self.sorted_colors
         if not individual_images:
             colors = self.all_sorted_colors
@@ -36,8 +36,8 @@ class image_identifier:
             for color in colors:
                 labels.append(str(color[0]))
                 sizes.append(color[1])
-            # labels=labels, labeldistance=2
-            plt.pie(sizes, colors=sorted(self.rgb_to_hex(labels)))
+            plt.pie(sizes, startangle=90, colors=sorted(self.rgb_to_hex(labels)))
+            plt.legend(labels, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
             plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight', dpi=500)
             plt.show()
         else:
@@ -170,7 +170,7 @@ class image_scrape(file_manager):
 
 
 if __name__ == "__main__":
-    image_s = image_scrape(designer_directory="/Users/Jonas/Desktop/GitHub/Python/designer_scrape/designer_images",
+    image_s = image_scrape(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images",
                            designer_website='https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8',
                            minimum_percentage_similarity=20, image_limit=30)
 
