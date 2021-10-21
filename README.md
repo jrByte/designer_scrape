@@ -1,13 +1,13 @@
 # Designer Scrape
 
 ## Summary
-Designer scrape is a simple algorithm that I am using to collect data from various designer websites. Currently only scraping of the louis vuitton website has been implemented, but I plan on adding more once I fine tune the color algorithm. It is highly advised to use a VPN to hide your IP address when scraping the images of the website to prevent your IP address from being blocked or restricted from other websites!!
+Designer scrape is a simple algorithm that I am using to collect data from various designer websites. Currently, only scraping of the louis vuitton website has been implemented, but I plan on adding more once I fine tune the color algorithm. It is highly advised to use a VPN to hide your IP address when scraping the images of the website to prevent your IP address from being blocked or restricted from other websites!!
 
 ## Installation
-I use poetry a package manager to help install all my dependencies that I use for this project. Python 3.9 is used for this project and is ran on windows 10.
+I use poetry a package manager to help install all my dependencies that I use for this project. Python 3.9 is used for this project and is run on Windows 10.
 
 ## Color Algorithm 
-Currently the algorithm individually searches through every pixel and identifies the color of that pixel with RGB. This is then stored and counted for everytime there is an identical version of that RGB found. Anything that is similar to a certain percentage is remove because of them being considered shadows or shading of that color and are also very high in digits. The percentage of sensitivity of shades can be adjusted when calling the most_common_colors method, but is declared beforehand when creating an instance of the class image_scrape. This will be improved to be more OOP in the future.
+Currently, the algorithm individually searches through every pixel and identifies the color of that pixel with RGB. This is then stored and counted for everytime there is an identical version of that RGB found. Anything that is similar to a certain percentage is remove because of them being considered shadows or shading of that color and are also very high in digits. The percentage of sensitivity of shades can be adjusted when calling the most_common_colors method, but is declared beforehand when creating an instance of the class image_scrape. This will be improved to be more OOP in the future.
 
 ## Results
 
