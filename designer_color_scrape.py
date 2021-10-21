@@ -36,8 +36,10 @@ class image_identifier:
             for color in colors:
                 labels.append(str(color[0]))
                 sizes.append(color[1])
-            plt.pie(sizes, startangle=90, colors=sorted(self.rgb_to_hex(labels)))
-            plt.legend(labels, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
+
+            sorted_hex = sorted(self.rgb_to_hex(labels))
+            plt.pie(sizes, startangle=90, colors=sorted_hex)
+            plt.legend(sorted_hex, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
             plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight', dpi=500)
             plt.show()
         else:
