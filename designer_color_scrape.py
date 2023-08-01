@@ -48,6 +48,14 @@ class image_identifier:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
 
     def most_common_colors(self, most_common=300):
+        """
+        Called by image_main_colors. Gets all the most common colors in the image. That counts the rgb values of each
+        pixel in the image. While making sure that shades of colors are not included based on a certain
+        amount of similarity.
+
+        :param most_common:
+        :return: most_common_rgb: returns a Counter datatype. Of the counted rbg values in the image.
+        """
         print("Running most_common_colors")
         most_common_rgb = Counter(self.by_color).most_common(most_common)
         common_rgb_clone = most_common_rgb.copy()
@@ -71,20 +79,29 @@ class image_identifier:
 
         return most_common_rgb
 
-    def compile_all_main_colors(self):
+    def compile_all_main_colors(self, sorted_colors):
         print("Running compile_all_main_colors")
-        for colors in self.sorted_colors:
+        for colors in sorted_colors:
             self.all_sorted_colors.append(colors)
 
     def image_main_colors(self, image):
+        """
+        Called by get_image. This gets the main colors of the images besides white and black that
+        come from borders of the image.
+
+        :param image:
+        :return:
+        """
         print("Running image_main_colors")
         image = image.convert("RGB")
         self.by_color = defaultdict(int)
+
         for pixel in image.getdata():
             if pixel != (0, 0, 0) and pixel != (255, 255, 255):
                 self.by_color[pixel] += 1
-        self.sorted_colors = self.most_common_colors()
-        self.compile_all_main_colors()
+
+        sorted_colors = self.most_common_colors()
+        self.compile_all_main_colors(sorted_colors)
         return self.sorted_colors
 
 
@@ -103,6 +120,13 @@ class file_manager(image_identifier):
         return files
 
     def get_image(self, directory, files):
+        """
+        Iterates through the image files of the directory designer_images.
+
+        :param directory:
+        :param files:
+        :return:
+        """
         print("Running get_image")
         for file_name in files:
             print(directory)
