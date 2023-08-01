@@ -18,6 +18,7 @@ class image_identifier:
 
     @staticmethod
     def rgb_to_hex(rgb_list):
+        print("Running rgb_to_hex")
         hex_list = list()
         for rgb in rgb_list:
             rgb = eval(rgb)
@@ -26,6 +27,7 @@ class image_identifier:
         return hex_list
 
     def pie_chart(self, individual_images):
+        print("Running pie_chart")
         colors = self.sorted_colors
         if not individual_images:
             colors = self.all_sorted_colors
@@ -46,6 +48,7 @@ class image_identifier:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
 
     def most_common_colors(self, most_common=300):
+        print("Running most_common_colors")
         most_common_rgb = Counter(self.by_color).most_common(most_common)
         common_rgb_clone = most_common_rgb.copy()
 
@@ -69,10 +72,12 @@ class image_identifier:
         return most_common_rgb
 
     def compile_all_main_colors(self):
+        print("Running compile_all_main_colors")
         for colors in self.sorted_colors:
             self.all_sorted_colors.append(colors)
 
     def image_main_colors(self, image):
+        print("Running image_main_colors")
         image = image.convert("RGB")
         self.by_color = defaultdict(int)
         for pixel in image.getdata():
@@ -90,19 +95,23 @@ class file_manager(image_identifier):
 
     @staticmethod
     def get_files_list(directory):
-        print("Directory:", directory)
+        print("Running get_files_list")
+        # print("Directory:", directory)
         files = list()
         for a in os.listdir(directory):
             files.append(a)
         return files
 
     def get_image(self, directory, files):
+        print("Running get_image")
         for file_name in files:
+            print(directory)
             with Image.open(f'{directory}/{file_name}') as image:
-                print(f"Analysing: {file_name}")
+                # print(f"Analysing: {file_name}")
                 self.image_main_colors(image)
 
     def get_designer_images(self):
+        print("Running get_designer_images")
         self.get_image(self.designer_directory, self.get_files_list(self.designer_directory))
 
 
@@ -117,6 +126,7 @@ class image_scrape(file_manager):
 
     # USE VPN.
     def fetch_louis_vuitton_pages(self):
+        print("Running fetch_louis_vuitton_pages")
         website_copy = str(self.website)
         page_dne = True
         count = 0
@@ -137,6 +147,7 @@ class image_scrape(file_manager):
 
     # USE VPN.
     def louis_vuitton_fetch_images(self):
+        print("Running louis_vuitton_fetch_images")
         print(f"Fetching: {self.website}")
         req = Request(self.website, headers=self.headers)
         response = urlopen(req).read()
@@ -157,7 +168,8 @@ class image_scrape(file_manager):
         self.download_image(clean_url_images)
 
     def download_image(self, url_images):
-        file_name = len(self.get_files_list(directory=self.designer_directory)) + 1
+        print("Running download_image")
+        file_name = len(self.get_files_list(directory=self.designer_directory))
         for url in url_images:
             print("Fetching Image:", file_name)
             opener = urllib.request.build_opener()
@@ -172,7 +184,7 @@ class image_scrape(file_manager):
 
 
 if __name__ == "__main__":
-    image_s = image_scrape(designer_directory="C:/Users/Jonas Reynolds/Desktop/Github/designer_scrape/designer_images",
+    image_s = image_scrape(designer_directory=str(os.path.join(os.getcwd(), "designer_images")),
                            designer_website='https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-1ifgts8',
                            minimum_percentage_similarity=20, image_limit=30)
 
