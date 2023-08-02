@@ -27,12 +27,17 @@ class image_identifier:
         return hex_list
 
     def pie_chart(self, individual_images):
+        """
+        Creates a pie chart of the list of colors found.
+        :param individual_images:
+        :return:
+        """
         print("Running pie_chart")
         colors = self.sorted_colors
         if not individual_images:
             colors = self.all_sorted_colors
 
-        if self.sorted_colors:
+        if self.all_sorted_colors:
             labels = list()
             sizes = list()
             for color in colors:
@@ -47,7 +52,7 @@ class image_identifier:
         else:
             raise "Must call get_image_main_colors() first before calling pie_chart()"
 
-    def most_common_colors(self, most_common=300):
+    def image_most_common_colors(self, most_common=300):
         """
         Called by image_main_colors. Gets all the most common colors in the image. That counts the rgb values of each
         pixel in the image. While making sure that shades of colors are not included based on a certain
@@ -56,7 +61,7 @@ class image_identifier:
         :param most_common:
         :return: most_common_rgb: returns a Counter datatype. Of the counted rbg values in the image.
         """
-        print("Running most_common_colors")
+        print("Running image_most_common_colors")
         most_common_rgb = Counter(self.by_color).most_common(most_common)
         common_rgb_clone = most_common_rgb.copy()
 
@@ -100,7 +105,7 @@ class image_identifier:
             if pixel != (0, 0, 0) and pixel != (255, 255, 255):
                 self.by_color[pixel] += 1
 
-        sorted_colors = self.most_common_colors()
+        sorted_colors = self.image_most_common_colors()
         self.compile_all_main_colors(sorted_colors)
         return self.sorted_colors
 
@@ -128,8 +133,9 @@ class file_manager(image_identifier):
         :return:
         """
         print("Running get_image")
+        files = sorted(files)
         for file_name in files:
-            print(directory)
+            print("\nNew File: ", file_name)
             with Image.open(f'{directory}/{file_name}') as image:
                 # print(f"Analysing: {file_name}")
                 self.image_main_colors(image)
@@ -213,5 +219,12 @@ if __name__ == "__main__":
                            minimum_percentage_similarity=20, image_limit=30)
 
     # image_s.fetch_louis_vuitton_pages()
+
+    # Calls: get_files_list() -> get_image() ->
+    # Loops(Running image_main_color -> Running image_most_common_colors -> Running compile_all_main_colors)
     image_s.get_designer_images()
+
+    print("\nProgram Finished, displaying results...")
+
+    # Calls: rgb_to_hex()
     image_s.pie_chart(individual_images=False)
