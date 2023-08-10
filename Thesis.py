@@ -2,9 +2,9 @@
 # coding: utf-8
 
 # ### Thesis Project
-# 
+#
 # Using Design Pattern: Facade
-# 
+#
 # Ideas:
 # - Primary Color, Secondary, and Terrtiary Color Detection.
 # - Color Blob detection using machine vision to see if there are larger or smaller patterns.
@@ -59,7 +59,7 @@ class ImageWebScrapper:
 
     def download_images(self, url_images: list):
         """
-        Iterates through a list of url images that it downloads and saves in the appropriate directory. 
+        Iterates through a list of url images that it downloads and saves in the appropriate directory.
         It saves it within the image_limit directory under the hostname.
 
         :param url_images: a list of urls that are direct links to images.
@@ -151,6 +151,9 @@ class ImageAnalysis:
                 top_values.append(image_color)
         return top_values
 
+    def plot_3d_rgb_graph(self, rgb_with_frequency):
+        print(rgb_with_frequency[:1])
+
     #     TODO: Rewrite
     def plot_rgb_scatter_with_frequency(self, rgb_with_frequency, image_path=None):
         plt.figure(1)
@@ -208,10 +211,7 @@ class ImageAnalysis:
         :param most_common:
         :return: most_common_rgb: returns a Counter datatype. Of the counted rbg values in the image.
         """
-
-        print("Running image_most_common_colors")
         most_common_rgb = Counter(by_color).most_common(most_common)
-
         common_rgb_clone = most_common_rgb.copy()
         for rgb_index in range(len(common_rgb_clone)):
             for rgb_index2 in range(rgb_index + 1, len(common_rgb_clone)):
@@ -338,18 +338,16 @@ class Facade:
         files = self.image_file_manager.get_files_list(louis_vuitton_dir)
         all_images_rgb_count = list()
         for file in files:
+            print("Analyzing file: ", file)
             file_path = os.path.join(louis_vuitton_dir, file)
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
             most_common_colors = self.image_analysis.image_most_common_colors(colors)
             all_images_rgb_count += most_common_colors
 
-        self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
+        # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
+        self.image_analysis.plot_3d_rgb_graph(all_images_rgb_count)
 
-        # most_common_colors = self.image_analysis.image_most_common_colors(all_images_rgb_count)
-
-        # image_most_common_colors = self.image_analysis.image_most_common_colors(most_common_colors)
-        # self.image_analysis.plot_rgb_scatter_with_frequency(image_most_common_colors, file_path)
 
 
 # In[34]:
