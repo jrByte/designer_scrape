@@ -378,8 +378,6 @@ class Facade:
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
         self.image_analysis.plot_3d_rgb_graph(all_images_rgb_count)
 
-
-
 # In[34]:
 
 
