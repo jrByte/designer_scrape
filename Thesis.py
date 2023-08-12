@@ -11,6 +11,9 @@
 
 # In[1]:
 
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import matplotlib.pyplot as plt
 
 import math
 import time
@@ -151,8 +154,35 @@ class ImageAnalysis:
                 top_values.append(image_color)
         return top_values
 
+    def rgb_to_hex(self, r, g, b):
+        hex_value = ('#%02x%02x%02x' % (r, g, b))
+        return hex_value
+
     def plot_3d_rgb_graph(self, rgb_with_frequency):
         print(rgb_with_frequency[:1])
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        n = 100
+
+        # For each set of style and range settings, plot n random points in the box
+        # defined by x in [23, 32], y in [0, 100], z in [zlow, zhigh].
+        for mark in rgb_with_frequency:
+            # Red
+            xs = mark[0][0]
+            # Green
+            ys = mark[0][1]
+            # Blue
+            zs = mark[0][2]
+            ax.scatter(xs, ys, zs, marker='o', color=str(self.rgb_to_hex(xs, ys, zs)))
+
+        ax.set_xlabel('(X) Red 0-255')
+        ax.set_ylabel('(Y) Green 0-255')
+        ax.set_zlabel('(Z) Blue 0-255')
+
+        ax = plt.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+
+        plt.show()
 
     #     TODO: Rewrite
     def plot_rgb_scatter_with_frequency(self, rgb_with_frequency, image_path=None):
