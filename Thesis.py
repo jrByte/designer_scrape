@@ -60,6 +60,7 @@ class ImageWebScrapper:
         self.image_limit = image_limit
         self.image_count = 1
 
+    # TODO: all the images are not being downloaded...
     def download_images(self, url_images: list):
         """
         Iterates through a list of url images that it downloads and saves in the appropriate directory.
@@ -97,6 +98,7 @@ class ImageWebScrapper:
 
                 os.chmod(file_location, 0o755)
 
+                print("sdf: ",self.image_count, self.image_limit)
                 if self.image_count > self.image_limit:
                     print(f"(download_images): Image count reached: {self.image_limit}")
                     return True
@@ -308,7 +310,7 @@ class Facade:
         #       default variables
         self.image_directory = os.path.join(os.getcwd(), "images")
         #       calling necessary classes
-        self.image_web_scrapper = ImageWebScrapper(self.image_directory)
+        self.image_web_scrapper = ImageWebScrapper(self.image_directory, 60)
         self.image_file_manager = ImageFileManager(self.image_directory)
         self.image_analysis = ImageAnalysis(self.image_directory)
 
@@ -341,13 +343,14 @@ class Facade:
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
         self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
 
+
 # In[34]:
 
 
 if __name__ == "__main__":
     facade = Facade()
     website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
-    # facade.download_website(website_url)
+    facade.download_website(website_url)
 
     # facade.analyze_image(r'/Users/Jonas/Desktop/GitHub/Python/designer_scrape/images/louisvuitton.com/0.png')
     facade.analyze_all_images()
