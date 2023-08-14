@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import math
+import random
 import time
 import urllib
 
@@ -62,8 +63,7 @@ class ImageWebScrapper:
         self.image_count = 1
         self.website_catacory_limit = website_catacory_limit
 
-    # TODO: all the images are not being downloaded...
-    def download_images(self, url_images: list):
+    def download_images(self, url_images: list, directory_special_name: str):
         """
         Iterates through a list of url images that it downloads and saves in the appropriate directory.
         It saves it within the image_limit directory under the hostname.
@@ -74,7 +74,7 @@ class ImageWebScrapper:
         #       Gets the domain from the URL and creates a directory for it.
         domain = url_images[0]
         print(domain)
-        domain = '.'.join((urlparse(domain).netloc).split('.')[-2:])
+        domain = ('.'.join((urlparse(domain).netloc).split('.')[-2:])) + directory_special_name
         directory = os.path.join(self.image_directory, domain)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -87,10 +87,12 @@ class ImageWebScrapper:
             files.append(a)
         file_name_iteration = len(files)
 
-        for url in url_images:
-            print("Fetching Image:", self.image_count, domain)
-            delay = 10
-            print(f"Delaying Fetch by {delay} seconds.")
+        for count, url in enumerate(url_images):
+            print(f"{count}/{len(url_images)}")
+            # print("Fetching Image:", self.image_count, domain)
+            delay = random.randint(0, 2)
+            time.sleep(delay)
+            # print(f"Delaying Fetch by {delay} seconds.")
             response = requests.get(url, headers=self.website_headers)
             if response.status_code == 200:
                 file_location = os.path.join(directory, f"{file_name_iteration}.png")
@@ -268,10 +270,10 @@ class Facade:
         self.image_file_manager = ImageFileManager(self.directory)
         self.image_analysis = ImageAnalysis(self.directory)
 
-    def download_website(self, url):
+    def download_website(self, url, directory_special_name=""):
         pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
         for page in pages:
-            self.image_web_scrapper.download_images(page)
+            self.image_web_scrapper.download_images(page, directory_special_name)
 
     def analyze_image(self, file_path):
         image = self.image_analysis.file_to_image(file_path)
@@ -303,8 +305,9 @@ class Facade:
 if __name__ == "__main__":
     facade = Facade()
     website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
-    # facade.download_website(website_url)
-    facade.analyze_all_images()
+
+    # facade.download_website(website_url, directory_special_name="-handbags")
+    facade.analyze_all_images("louisvuitton.com-handbags")
 
     # facade.analyze_image(r'/Users/Jonas/Desktop/GitHub/Python/designer_scrape/images/louisvuitton.com/0.png')
 
