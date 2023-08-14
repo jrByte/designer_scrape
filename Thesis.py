@@ -33,8 +33,8 @@ from urllib.parse import urlparse
 
 
 class ImageFileManager:
-    def __init__(self, image_directory):
-        self.image_directory = image_directory
+    def __init__(self, directory):
+        self.image_directory = os.path.join(directory, "images")
 
     def get_files_list(self, directory):
         print("Running get_files_list")
@@ -53,12 +53,14 @@ class ImageFileManager:
 
 
 class ImageWebScrapper:
-    def __init__(self, image_directory, image_limit: int = 10):
-        self.image_directory = image_directory
+    def __init__(self, directory, image_limit: int = 10, website_catacory_limit: int = 5):
+        self.directory = directory
+        self.image_directory = os.path.join(directory, "images")
         self.website_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
         self.image_limit = image_limit
         self.image_count = 1
+        self.website_catacory_limit = website_catacory_limit
 
     # TODO: all the images are not being downloaded...
     def download_images(self, url_images: list):
@@ -87,6 +89,8 @@ class ImageWebScrapper:
 
         for url in url_images:
             print("Fetching Image:", self.image_count, domain)
+            delay = 10
+            print(f"Delaying Fetch by {delay} seconds.")
             response = requests.get(url, headers=self.website_headers)
             if response.status_code == 200:
                 file_location = os.path.join(directory, f"{file_name_iteration}.png")
@@ -98,23 +102,25 @@ class ImageWebScrapper:
 
                 os.chmod(file_location, 0o755)
 
-                print("sdf: ",self.image_count, self.image_limit)
+                print("sdf: ", self.image_count, self.image_limit)
                 if self.image_count > self.image_limit:
                     print(f"(download_images): Image count reached: {self.image_limit}")
                     return True
 
     def fetch_louis_vuitton_pages(self, website):
         print("Running fetch_louis_vuitton_pages")
-        page_dne = True
         count = 0
         louis_vuitton_images_pages = list()
-        while count <= self.image_limit and page_dne:
-            print("Page:", count)
-            try:
-                website += f"?page={count}"
-                print(f"Fetching: {website}")
+        page_dne = True
 
-                req = requests.get(website, headers=self.website_headers)
+        while (count <= self.website_catacory_limit) and page_dne:
+            print("Page:", count)
+            original_website = website
+            try:
+                original_website += f"?page={count}"
+                print(f"Fetching: {original_website}")
+
+                req = requests.get(original_website, headers=self.website_headers)
                 print(req.status_code)
 
                 soup = BeautifulSoup(req.text, "html.parser", from_encoding="gzip")
@@ -135,15 +141,15 @@ class ImageWebScrapper:
             except urllib.error.HTTPError as e:
                 print(e)
                 page_dne = False
-            return louis_vuitton_images_pages
+        return louis_vuitton_images_pages
 
 
 # In[18]:
 
 
 class ImageAnalysis:
-    def __init__(self, image_directory):
-        self.image_directory = image_directory
+    def __init__(self, directory):
+        self.image_directory = os.path.join(directory, "images")
         self.minimum_percentage_similarity = 20
 
     def get_top_values(self, top_colors_in_all_images):
@@ -172,7 +178,10 @@ class ImageAnalysis:
         # Convert RGB colors to hexadecimal notation
         hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
 
-        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[f for f in frequencies], alpha=0.7)
+        max_size = 199
+        color_sizes = [(num - 1) / max_size for num in frequencies]
+
+        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in color_sizes], alpha=0.7)
 
         ax.set_xlabel('(X) Red 0-255')
         ax.set_ylabel('(Y) Green 0-255')
@@ -181,65 +190,9 @@ class ImageAnalysis:
         ax.set_ylim(ax.get_ylim()[::-1])
         plt.show()
 
+        # plt.savefig('rgb_scatter_plot.png')
 
-    #     TODO: Rewrite
-    def plot_3d_rgb_graph(self, rgb_with_frequency):
-        print(rgb_with_frequency[:1])
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        n = 100
-        # For each set of style and range settings, plot n random points in the box
-        # defined by x in [23, 32], y in [0, 100], z in [zlow, zhigh].
-        for mark in rgb_with_frequency:
-            # Red
-            xs = mark[0][0]
-            # Green
-            ys = mark[0][1]
-            # Blue
-            zs = mark[0][2]
-            ax.scatter(xs, ys, zs, marker='o', color=str(self.rgb_to_hex(xs, ys, zs)))
-        ax.set_xlabel('(X) Red 0-255')
-        ax.set_ylabel('(Y) Green 0-255')
-        ax.set_zlabel('(Z) Blue 0-255')
-        ax = plt.gca()
-        ax.set_ylim(ax.get_ylim()[::-1])
-        plt.show()
-
-    #     TODO: Rewrite
-    def plot_rgb_scatter_with_frequency(self, rgb_with_frequency, image_path=None):
-        plt.figure(1)
-        rgb_colors, frequencies = zip(*rgb_with_frequency)
-        r_values = [color[0] for color in rgb_colors]
-        g_values = [color[1] for color in rgb_colors]
-        b_values = [color[2] for color in rgb_colors]
-
-        # Convert RGB colors to hexadecimal notation
-        hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
-
-        plt.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[f * 10 for f in frequencies], alpha=0.7)
-        plt.xlabel('Red')
-        plt.ylabel('Green')
-        plt.title('Scatter Plot of RGB Colors with Frequency')
-        plt.colorbar(label='Blue')
-        plt.grid(True)
-        plt.show()
-
-        #       plot 2
-        colors2 = [color[0] for color in rgb_with_frequency]
-        frequencies2 = [color[1] for color in rgb_with_frequency]
-        r_values2 = [color[0] for color in colors2]
-        g_values2 = [color[1] for color in colors2]
-        b_values2 = [color[2] for color in colors2]
-
-        # Plot the bar graph
-        plt.figure(figsize=(10, 6))
-        plt.bar(range(len(colors2)), frequencies, color=[(r / 255, g / 255, b / 255) for r, g, b in colors2])
-        plt.xticks(range(len(colors2)), colors2)
-        plt.xlabel('RGB Colors')
-        plt.ylabel('Frequency')
-        plt.title('Top 10 Colors with Frequencies')
-        plt.show()
-
+    def show_image(self, image_path):
         if image_path:
             plt.figure(3)
             # Assuming you have the path to the image file
@@ -308,11 +261,12 @@ class ImageAnalysis:
 class Facade:
     def __init__(self):
         #       default variables
-        self.image_directory = os.path.join(os.getcwd(), "images")
+        self.directory = os.getcwd()
+        self.image_directory = os.path.join(self.directory, "images")
         #       calling necessary classes
-        self.image_web_scrapper = ImageWebScrapper(self.image_directory, 60)
-        self.image_file_manager = ImageFileManager(self.image_directory)
-        self.image_analysis = ImageAnalysis(self.image_directory)
+        self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit = 1000, website_catacory_limit = 30)
+        self.image_file_manager = ImageFileManager(self.directory)
+        self.image_analysis = ImageAnalysis(self.directory)
 
     def download_website(self, url):
         pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
@@ -326,7 +280,6 @@ class Facade:
         self.image_analysis.plot_rgb_scatter_with_frequency(most_common_colors, file_path)
 
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
-
         # directory to analyze
         louis_vuitton_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(louis_vuitton_dir)
@@ -350,15 +303,9 @@ class Facade:
 if __name__ == "__main__":
     facade = Facade()
     website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
-    facade.download_website(website_url)
-
-    # facade.analyze_image(r'/Users/Jonas/Desktop/GitHub/Python/designer_scrape/images/louisvuitton.com/0.png')
+    # facade.download_website(website_url)
     facade.analyze_all_images()
 
-    #     for i in facade.get_files():
-    #         facade.analyze_image(i)
-    #         time.sleep(3)
-
-    # facade.analyze_all_images()
+    # facade.analyze_image(r'/Users/Jonas/Desktop/GitHub/Python/designer_scrape/images/louisvuitton.com/0.png')
 
 # In[ ]:
