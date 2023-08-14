@@ -158,12 +158,34 @@ class ImageAnalysis:
         hex_value = ('#%02x%02x%02x' % (r, g, b))
         return hex_value
 
+    def graph_3d_rgb_frequency(self, rgb_with_frequency):
+        rgb_colors, frequencies = zip(*rgb_with_frequency)
+        r_values = [color[0] for color in rgb_colors]
+        g_values = [color[1] for color in rgb_colors]
+        b_values = [color[2] for color in rgb_colors]
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+
+        # Convert RGB colors to hexadecimal notation
+        hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
+
+        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[f for f in frequencies], alpha=0.7)
+
+        ax.set_xlabel('(X) Red 0-255')
+        ax.set_ylabel('(Y) Green 0-255')
+        ax.set_zlabel('(Z) Blue 0-255')
+        ax = plt.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+        plt.show()
+
+
+    #     TODO: Rewrite
     def plot_3d_rgb_graph(self, rgb_with_frequency):
         print(rgb_with_frequency[:1])
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         n = 100
-
         # For each set of style and range settings, plot n random points in the box
         # defined by x in [23, 32], y in [0, 100], z in [zlow, zhigh].
         for mark in rgb_with_frequency:
@@ -174,14 +196,11 @@ class ImageAnalysis:
             # Blue
             zs = mark[0][2]
             ax.scatter(xs, ys, zs, marker='o', color=str(self.rgb_to_hex(xs, ys, zs)))
-
         ax.set_xlabel('(X) Red 0-255')
         ax.set_ylabel('(Y) Green 0-255')
         ax.set_zlabel('(Z) Blue 0-255')
-
         ax = plt.gca()
         ax.set_ylim(ax.get_ylim()[::-1])
-
         plt.show()
 
     #     TODO: Rewrite
@@ -195,7 +214,7 @@ class ImageAnalysis:
         # Convert RGB colors to hexadecimal notation
         hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
 
-        plt.scatter(r_values, g_values, c=hex_colors, marker='o', s=[f * 10 for f in frequencies], alpha=0.7)
+        plt.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[f * 10 for f in frequencies], alpha=0.7)
         plt.xlabel('Red')
         plt.ylabel('Green')
         plt.title('Scatter Plot of RGB Colors with Frequency')
@@ -232,6 +251,11 @@ class ImageAnalysis:
             # Show the plot
             plt.show()
 
+    def get_rgb_distance(self, r1, g1, b1, r2, g2, b2):
+        distance = math.sqrt(math.pow((r2 - r1), 2) + math.pow((g2 - g1), 2) + math.pow((b2 - b1), 2))
+        percentage = (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100
+        return {"distance": distance, "percentage": percentage}
+
     def image_most_common_colors(self, by_color, most_common=300):
         """
         Called by image_main_colors. Gets all the most common colors in the image. That counts the rgb values of each
@@ -253,13 +277,12 @@ class ImageAnalysis:
                 g2 = common_rgb_clone[rgb_index2][0][1]
                 b2 = common_rgb_clone[rgb_index2][0][2]
 
-                distance = math.sqrt(math.pow((r2 - r1), 2) + math.pow((g2 - g1), 2) + math.pow((b2 - b1), 2))
-                percentage = (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100
+                percentage_of_similarity = self.get_rgb_distance(r1, g1, b1, r2, g2, b2)["percentage"]
 
                 if len(most_common_rgb) <= 10:
                     break
                 else:
-                    if percentage <= self.minimum_percentage_similarity:
+                    if percentage_of_similarity <= self.minimum_percentage_similarity:
                         if common_rgb_clone[rgb_index2] in most_common_rgb:
                             most_common_rgb.remove(common_rgb_clone[rgb_index2])
 
@@ -277,60 +300,6 @@ class ImageAnalysis:
                 by_color[pixel] += 1
 
         return by_color
-
-    def single_pie_chart(self, image):
-        """
-        Creates a pie chart of the list of colors found.
-        :param individual_images:
-        :return:
-        """
-        print("Running single_pie_chart")
-
-        labels = list()
-        sizes = list()
-
-        for color in colors:
-            labels.append(str(color[0]))
-            sizes.append(color[1])
-
-        sorted_hex = sorted(self.rgb_to_hex(labels))
-        plt.pie(sizes, startangle=90, colors=sorted_hex)
-        plt.legend(sorted_hex, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
-        plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight', dpi=500)
-        plt.show()
-
-    def pie_chart(self, path):
-        """
-        Creates a pie chart of the list of colors found.
-        :param individual_images:
-        :return:
-        """
-
-        print("Running pie_chart")
-        colors = self.sorted_colors
-        if not individual_images:
-            colors = self.all_sorted_colors
-
-        if self.all_sorted_colors:
-            labels = list()
-            sizes = list()
-
-            for color in colors:
-                labels.append(str(color[0]))
-                sizes.append(color[1])
-
-            sorted_hex = sorted(self.rgb_to_hex(labels))
-
-            plt.pie(sizes, startangle=90, colors=sorted_hex)
-            plt.legend(sorted_hex, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
-            plt.savefig('readme_images/Louis_Vuitton_colors.PNG', bbox_inches='tight', dpi=500)
-
-            plt.show()
-
-        else:
-            raise "Must call get_image_main_colors() first before calling pie_chart()"
-
-
 # In[35]:
 
 
@@ -343,15 +312,6 @@ class Facade:
         self.image_file_manager = ImageFileManager(self.image_directory)
         self.image_analysis = ImageAnalysis(self.image_directory)
 
-    def get_files(self):
-        louis_vuitton_dir = os.path.join(self.image_directory, "louisvuitton.com")
-        image_paths = list()
-        print(self.image_file_manager.get_files_list(louis_vuitton_dir))
-        for file_name in self.image_file_manager.get_files_list(louis_vuitton_dir):
-            full_path_image = os.path.join(louis_vuitton_dir, file_name)
-            image_paths.append(full_path_image)
-        return image_paths
-
     def download_website(self, url):
         pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
         for page in pages:
@@ -363,9 +323,12 @@ class Facade:
         most_common_colors = self.image_analysis.image_most_common_colors(colors)
         self.image_analysis.plot_rgb_scatter_with_frequency(most_common_colors, file_path)
 
-    def analyze_all_images(self):
-        louis_vuitton_dir = os.path.join(self.image_directory, "louisvuitton.com")
+    def analyze_all_images(self, analyze_directory="louisvuitton.com"):
+
+        # directory to analyze
+        louis_vuitton_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(louis_vuitton_dir)
+
         all_images_rgb_count = list()
         for file in files:
             print("Analyzing file: ", file)
@@ -376,7 +339,7 @@ class Facade:
             all_images_rgb_count += most_common_colors
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
-        self.image_analysis.plot_3d_rgb_graph(all_images_rgb_count)
+        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
 
 # In[34]:
 
