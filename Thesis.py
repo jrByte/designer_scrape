@@ -41,9 +41,10 @@ class ImageFileManager:
         print("Running get_files_list")
         # print("Directory:", directory)
         files = list()
-        print(directory, os.listdir(directory))
         if not os.path.isdir(directory):
             os.makedirs(directory)
+
+        print(directory, os.listdir(directory))
 
         for a in os.listdir(directory):
             files.append(a)
@@ -63,7 +64,7 @@ class ImageWebScrapper:
         self.image_count = 1
         self.website_catacory_limit = website_catacory_limit
 
-    def download_images(self, url_images: list, directory_special_name: str):
+    def download_images(self, url_images: list, directory_special_name: str, amount_of_pages: int):
         """
         Iterates through a list of url images that it downloads and saves in the appropriate directory.
         It saves it within the image_limit directory under the hostname.
@@ -73,7 +74,6 @@ class ImageWebScrapper:
 
         #       Gets the domain from the URL and creates a directory for it.
         domain = url_images[0]
-        print(domain)
         domain = ('.'.join((urlparse(domain).netloc).split('.')[-2:])) + directory_special_name
         directory = os.path.join(self.image_directory, domain)
         if not os.path.exists(directory):
@@ -87,8 +87,12 @@ class ImageWebScrapper:
             files.append(a)
         file_name_iteration = len(files)
 
+        total_amount_of_images = len(url_images) * amount_of_pages
+
         for count, url in enumerate(url_images):
+
             print(f"{count}/{len(url_images)}")
+
             # print("Fetching Image:", self.image_count, domain)
             delay = random.randint(0, 2)
             time.sleep(delay)
@@ -104,9 +108,8 @@ class ImageWebScrapper:
 
                 os.chmod(file_location, 0o755)
 
-                print("sdf: ", self.image_count, self.image_limit)
                 if self.image_count > self.image_limit:
-                    print(f"(download_images): Image count reached: {self.image_limit}")
+                    print(f"Image count reached: {self.image_limit}")
                     return True
 
     def fetch_louis_vuitton_pages(self, website):
@@ -151,7 +154,9 @@ class ImageWebScrapper:
 
 class ImageAnalysis:
     def __init__(self, directory):
+        self.directory = directory
         self.image_directory = os.path.join(directory, "images")
+        self.readme_images = os.path.join(directory, 'readme_images')
         self.minimum_percentage_similarity = 20
 
     def get_top_values(self, top_colors_in_all_images):
@@ -190,9 +195,21 @@ class ImageAnalysis:
         ax.set_zlabel('(Z) Blue 0-255')
         ax = plt.gca()
         ax.set_ylim(ax.get_ylim()[::-1])
+
+        ax.view_init(elev=70, azim=-45)
+        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_1.png')
+        plt.savefig(save_location, dpi=600)
+
+        ax.view_init(elev=5, azim=45)
+        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_2.png')
+        plt.savefig(save_location, dpi=600)
+
+        ax.view_init(elev=90, azim=45)
+        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_3.png')
+        plt.savefig(save_location, dpi=600)
+
         plt.show()
 
-        # plt.savefig('rgb_scatter_plot.png')
 
     def show_image(self, image_path):
         if image_path:
@@ -273,7 +290,7 @@ class Facade:
     def download_website(self, url, directory_special_name=""):
         pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
         for page in pages:
-            self.image_web_scrapper.download_images(page, directory_special_name)
+            self.image_web_scrapper.download_images(page, directory_special_name, amount_of_pages=len(pages))
 
     def analyze_image(self, file_path):
         image = self.image_analysis.file_to_image(file_path)
