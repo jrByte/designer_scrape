@@ -15,6 +15,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import matplotlib.pyplot as plt
 
+import numpy as np
+from scipy import signal
+
 import math
 import random
 import time
@@ -112,8 +115,29 @@ class ImageWebScrapper:
                     print(f"Image count reached: {self.image_limit}")
                     return True
 
+    def fetch_chanel_pages(self, website):
+        count = 0
+        website_images = list()
+        page_dne = True
+
+        req = requests.get(website, headers=self.website_headers)
+        print(req.status_code)
+
+        soup = BeautifulSoup(req.text, "html.parser", from_encoding="gzip")
+        website_items = soup.find_all('div', {"class": 'product-grid__item js-product-edito fs-gridelement'})
+
+        for images_in_website_items in website_items:
+            images = images_in_website_items.find_all('picture', {"class": 'fs-element--inline'})
+            for image in images:
+                found_image_size = (str(image).rfind("1092w"))
+                if found_image_size != -1:
+                    print("FOUND", type(image), str(image)[:found_image_size])
+                break
+            break
+
+        return website_images
+
     def fetch_louis_vuitton_pages(self, website):
-        print("Running fetch_louis_vuitton_pages")
         count = 0
         louis_vuitton_images_pages = list()
         page_dne = True
@@ -173,6 +197,40 @@ class ImageAnalysis:
         hex_value = ('#%02x%02x%02x' % (r, g, b))
         return hex_value
 
+    # TODO: working on this currently.
+    def graph_rgb_spectrogram(self, rgb_with_frequency):
+        rgb_colors, frequencies = zip(*rgb_with_frequency)
+        r_values = [color[0] for color in rgb_colors]
+        r_colors = [(color[0], 0, 0) for color in rgb_colors]
+        g_values = [color[1] for color in rgb_colors]
+        g_colors = [(color[0], 0, 0) for color in rgb_colors]
+        b_values = [color[2] for color in rgb_colors]
+        b_colors = [(color[0], 0, 0) for color in rgb_colors]
+
+
+        # Normalizing frequencies for height
+        normalized_frequencies = np.array(frequencies) / max(frequencies)
+
+        # Creating the figure and axis
+        fig, ax = plt.subplots()
+
+        # Plotting red, green, and blue separately
+        ax.barh(np.arange(len(rgb_colors)), r_values, color=(1, 0, 0, 0.7), height=normalized_frequencies, label='Red')
+        ax.barh(np.arange(len(rgb_colors)), g_values, color=(0, 1, 0, 0.7), height=normalized_frequencies,
+                label='Green', left=r_values)
+        ax.barh(np.arange(len(rgb_colors)), b_values, color=(0, 0, 1, 0.7), height=normalized_frequencies, label='Blue',
+                left=np.array(r_values) + np.array(g_values))
+
+        # Adding labels and legend
+        ax.set_yticks(np.arange(len(rgb_colors)))
+        ax.set_yticklabels([f'Frequency {freq}' for freq in frequencies])
+        ax.set_xlabel('RGB Values')
+        ax.set_title('RGB Spectrogram')
+        ax.legend()
+
+        # Display the plot
+        plt.show()
+
     def graph_3d_rgb_frequency(self, rgb_with_frequency):
         rgb_colors, frequencies = zip(*rgb_with_frequency)
         r_values = [color[0] for color in rgb_colors]
@@ -188,7 +246,8 @@ class ImageAnalysis:
         max_size = 199
         color_sizes = [(num - 1) / max_size for num in frequencies]
 
-        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in color_sizes], alpha=0.7)
+        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in color_sizes],
+                   alpha=0.7)
 
         ax.set_xlabel('(X) Red 0-255')
         ax.set_ylabel('(Y) Green 0-255')
@@ -208,8 +267,9 @@ class ImageAnalysis:
         save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_3.png')
         plt.savefig(save_location, dpi=600)
 
+        name = (os.path.dirname(self.directory))
+        plt.title((name + ": RGB Scatter Plot"))
         plt.show()
-
 
     def show_image(self, image_path):
         if image_path:
@@ -274,6 +334,8 @@ class ImageAnalysis:
                 by_color[pixel] += 1
 
         return by_color
+
+
 # In[35]:
 
 
@@ -283,12 +345,25 @@ class Facade:
         self.directory = os.getcwd()
         self.image_directory = os.path.join(self.directory, "images")
         #       calling necessary classes
-        self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit = 1000, website_catacory_limit = 30)
+        self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_catacory_limit=30)
         self.image_file_manager = ImageFileManager(self.directory)
         self.image_analysis = ImageAnalysis(self.directory)
 
     def download_website(self, url, directory_special_name=""):
-        pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
+        # Gets a list of image urls within the website.
+        domain = ('.'.join((urlparse(url).netloc).split('.')[-2:]))
+
+        print(f"Scrapping {domain} for images.")
+        if domain == "louisvuitton.com":
+            pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
+        elif domain == "chanel.com":
+            pages = self.image_web_scrapper.fetch_chanel_pages(url)
+            return True
+        else:
+            print("Program has not been designed yet for this website.")
+            return None
+
+        # Iterating through each page to download the image.
         for page in pages:
             self.image_web_scrapper.download_images(page, directory_special_name, amount_of_pages=len(pages))
 
@@ -299,7 +374,7 @@ class Facade:
         self.image_analysis.plot_rgb_scatter_with_frequency(most_common_colors, file_path)
 
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
-        # directory to analyze
+        # directory to analyze`
         louis_vuitton_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(louis_vuitton_dir)
 
@@ -313,7 +388,8 @@ class Facade:
             all_images_rgb_count += most_common_colors
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
-        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
+        # self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
+        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count)
 
 
 # In[34]:
@@ -322,6 +398,7 @@ class Facade:
 if __name__ == "__main__":
     facade = Facade()
     website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
+    website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
 
     # facade.download_website(website_url, directory_special_name="-handbags")
     facade.analyze_all_images("louisvuitton.com-handbags")
