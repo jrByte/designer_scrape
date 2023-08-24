@@ -198,37 +198,26 @@ class ImageAnalysis:
         return hex_value
 
     # TODO: working on this currently.
-    def graph_rgb_spectrogram(self, rgb_with_frequency):
-        rgb_colors, frequencies = zip(*rgb_with_frequency)
-        r_values = [color[0] for color in rgb_colors]
-        r_colors = [(color[0], 0, 0) for color in rgb_colors]
-        g_values = [color[1] for color in rgb_colors]
-        g_colors = [(color[0], 0, 0) for color in rgb_colors]
-        b_values = [color[2] for color in rgb_colors]
-        b_colors = [(color[0], 0, 0) for color in rgb_colors]
-
+    def graph_rgb_spectrogram(self, red_with_frequency):
+        red_values, frequencies = zip(*red_with_frequency)
 
         # Normalizing frequencies for height
         normalized_frequencies = np.array(frequencies) / max(frequencies)
 
-        # Creating the figure and axis
-        fig, ax = plt.subplots()
+        # Creating the figure and 3D axis
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
 
-        # Plotting red, green, and blue separately
-        ax.barh(np.arange(len(rgb_colors)), r_values, color=(1, 0, 0, 0.7), height=normalized_frequencies, label='Red')
-        ax.barh(np.arange(len(rgb_colors)), g_values, color=(0, 1, 0, 0.7), height=normalized_frequencies,
-                label='Green', left=r_values)
-        ax.barh(np.arange(len(rgb_colors)), b_values, color=(0, 0, 1, 0.7), height=normalized_frequencies, label='Blue',
-                left=np.array(r_values) + np.array(g_values))
+        # Plotting red color values as bars in 3D space
+        ax.bar(red_values, normalized_frequencies, zs=0, zdir='y', color='r', alpha=0.7)
 
-        # Adding labels and legend
-        ax.set_yticks(np.arange(len(rgb_colors)))
-        ax.set_yticklabels([f'Frequency {freq}' for freq in frequencies])
-        ax.set_xlabel('RGB Values')
-        ax.set_title('RGB Spectrogram')
-        ax.legend()
+        # Set labels and title
+        ax.set_xlabel('Red Color Value')
+        ax.set_ylabel('Frequency')
+        ax.set_zlabel('Brightness')
+        ax.set_title('Red Color Spectrogram')
 
-        # Display the plot
+        # Display the 3D plot
         plt.show()
 
     def graph_3d_rgb_frequency(self, rgb_with_frequency):
@@ -252,6 +241,7 @@ class ImageAnalysis:
         ax.set_xlabel('(X) Red 0-255')
         ax.set_ylabel('(Y) Green 0-255')
         ax.set_zlabel('(Z) Blue 0-255')
+
         ax = plt.gca()
         ax.set_ylim(ax.get_ylim()[::-1])
 
@@ -379,13 +369,16 @@ class Facade:
         files = self.image_file_manager.get_files_list(louis_vuitton_dir)
 
         all_images_rgb_count = list()
-        for file in files:
-            print("Analyzing file: ", file)
+        for count, file in enumerate(files):
+            print(f"Analyzing file {count} out of {len(files)}")
             file_path = os.path.join(louis_vuitton_dir, file)
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
             most_common_colors = self.image_analysis.image_most_common_colors(colors)
             all_images_rgb_count += most_common_colors
+
+            if count <= 20:
+                break
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
         # self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
