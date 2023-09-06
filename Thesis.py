@@ -16,7 +16,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import numpy as np
-from scipy import signal
 
 import math
 import random
@@ -198,26 +197,41 @@ class ImageAnalysis:
         return hex_value
 
     # TODO: working on this currently.
-    def graph_rgb_spectrogram(self, red_with_frequency):
-        red_values, frequencies = zip(*red_with_frequency)
-
-        # Normalizing frequencies for height
-        normalized_frequencies = np.array(frequencies) / max(frequencies)
-
-        # Creating the figure and 3D axis
+    def graph_rgb_spectrogram(self, rgb_with_frequency):
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(projection='3d')
+        yticks = [2, 1, 0]
 
-        # Plotting red color values as bars in 3D space
-        ax.bar(red_values, normalized_frequencies, zs=0, zdir='y', color='r', alpha=0.7)
+        bar_width = 0.5  # You can adjust this value as needed
 
-        # Set labels and title
-        ax.set_xlabel('Red Color Value')
-        ax.set_ylabel('Frequency')
-        ax.set_zlabel('Brightness')
-        ax.set_title('Red Color Spectrogram')
+        for rgb_colors, frequencies in rgb_with_frequency:
+            r_value = rgb_colors[0]
+            g_value = rgb_colors[1]
+            b_value = rgb_colors[2]
 
-        # Display the 3D plot
+            # red
+            ax.bar3d(r_value, yticks[0], 0, bar_width, bar_width, frequencies, shade=True,
+                     color=self.rgb_to_hex(r_value, 0, 0))
+
+            # green
+            ax.bar3d(g_value, yticks[1], 0, bar_width, bar_width, frequencies, shade=True,
+                     color=self.rgb_to_hex(0, g_value, 0))
+
+            # blue
+            ax.bar3d(b_value, yticks[2], 0, bar_width, bar_width, frequencies, shade=True,
+                     color=self.rgb_to_hex(0, 0, b_value))
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+
+        # On the y-axis let's only label the discrete values that we have data for.
+        ax.set_yticks(yticks)
+
+        ax.view_init(elev=60, azim=-45)
+        save_location = os.path.join(self.readme_images, 'rgb_3d_bar_graph.png')
+        plt.savefig(save_location, dpi=600)
+
         plt.show()
 
     def graph_3d_rgb_frequency(self, rgb_with_frequency):
@@ -357,12 +371,6 @@ class Facade:
         for page in pages:
             self.image_web_scrapper.download_images(page, directory_special_name, amount_of_pages=len(pages))
 
-    def analyze_image(self, file_path):
-        image = self.image_analysis.file_to_image(file_path)
-        colors = self.image_analysis.image_main_colors(image)
-        most_common_colors = self.image_analysis.image_most_common_colors(colors)
-        self.image_analysis.plot_rgb_scatter_with_frequency(most_common_colors, file_path)
-
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
         # directory to analyze`
         louis_vuitton_dir = os.path.join(self.image_directory, analyze_directory)
@@ -370,15 +378,15 @@ class Facade:
 
         all_images_rgb_count = list()
         for count, file in enumerate(files):
-            print(f"Analyzing file {count} out of {len(files)}")
+            print(f"Analyzing file {(count + 1)} out of {len(files)}")
             file_path = os.path.join(louis_vuitton_dir, file)
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
             most_common_colors = self.image_analysis.image_most_common_colors(colors)
             all_images_rgb_count += most_common_colors
 
-            if count <= 20:
-                break
+            # if count <= 20:
+            #     break
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
         # self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
@@ -390,12 +398,10 @@ class Facade:
 
 if __name__ == "__main__":
     facade = Facade()
+
     website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
+
     website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
 
     # facade.download_website(website_url, directory_special_name="-handbags")
     facade.analyze_all_images("louisvuitton.com-handbags")
-
-    # facade.analyze_image(r'/Users/Jonas/Desktop/GitHub/Python/designer_scrape/images/louisvuitton.com/0.png')
-
-# In[ ]:
