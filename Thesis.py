@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import numpy as np
-
+import re
 import math
 import random
 import time
@@ -57,14 +57,14 @@ class ImageFileManager:
 
 
 class ImageWebScrapper:
-    def __init__(self, directory, image_limit: int = 10, website_catacory_limit: int = 5):
+    def __init__(self, directory, image_limit: int = 10, website_category_limit: int = 5):
         self.directory = directory
         self.image_directory = os.path.join(directory, "images")
         self.website_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'}
         self.image_limit = image_limit
         self.image_count = 1
-        self.website_catacory_limit = website_catacory_limit
+        self.website_category_limit = website_category_limit
 
     def download_images(self, url_images: list, directory_special_name: str, amount_of_pages: int):
         """
@@ -115,25 +115,36 @@ class ImageWebScrapper:
                     return True
 
     def fetch_chanel_pages(self, website):
-        count = 0
+        count = 1
         website_images = list()
-        page_dne = True
+        page_exists = True
+        
+        while (count <= self.website_category_limit) and page_exists:
+            try:
+                website_with_endpoint = website + f"page-{count}/"
+                print(website_with_endpoint)
+                req = requests.get(website_with_endpoint, headers=self.website_headers)
 
-        req = requests.get(website, headers=self.website_headers)
-        print(req.status_code)
+                soup = BeautifulSoup(req.text, "html.parser", from_encoding="gzip")
+                website_items = soup.find_all('div', {"class": 'product-grid__item js-product-edito fs-gridelement'})
 
-        soup = BeautifulSoup(req.text, "html.parser", from_encoding="gzip")
-        website_items = soup.find_all('div', {"class": 'product-grid__item js-product-edito fs-gridelement'})
+                if len(website_items) == 0:
+                    page_exists = False
 
-        for images_in_website_items in website_items:
-            images = images_in_website_items.find_all('picture', {"class": 'fs-element--inline'})
-            for image in images:
-                found_image_size = (str(image).rfind("1092w"))
-                if found_image_size != -1:
-                    print("FOUND", type(image), str(image)[:found_image_size])
-                break
-            break
-
+                for images_in_website_items in website_items:
+                    images = images_in_website_items.find_all('picture', {"class": 'fs-element--inline'})
+                    for image in images:
+                        source_tag = image.find('source')
+                        if source_tag and 'srcset' in source_tag.attrs:
+                            product_image_sizes = source_tag["srcset"]
+                            urls = re.findall(r'(//www\.chanel\.com/[^ ]+\.jpg)', product_image_sizes)
+                            for url in urls:
+                                if url.rfind("/w_1092/") != -1:
+                                    website_images.append(url[2:])
+                count += 1
+            except urllib.error.HTTPError as e:
+                print(e)
+                page_exists = False
         return website_images
 
     def fetch_louis_vuitton_pages(self, website):
@@ -141,7 +152,7 @@ class ImageWebScrapper:
         louis_vuitton_images_pages = list()
         page_dne = True
 
-        while (count <= self.website_catacory_limit) and page_dne:
+        while (count <= self.website_category_limit) and page_dne:
             print("Page:", count)
             original_website = website
             try:
@@ -209,15 +220,15 @@ class ImageAnalysis:
             g_value = rgb_colors[1]
             b_value = rgb_colors[2]
 
-            # red
+            # Plotting bar graph red
             ax.bar3d(r_value, yticks[0], 0, bar_width, bar_width, frequencies, shade=True,
                      color=self.rgb_to_hex(r_value, 0, 0))
 
-            # green
+            # Plotting bar graph green
             ax.bar3d(g_value, yticks[1], 0, bar_width, bar_width, frequencies, shade=True,
                      color=self.rgb_to_hex(0, g_value, 0))
 
-            # blue
+            # Plotting bar graph blue
             ax.bar3d(b_value, yticks[2], 0, bar_width, bar_width, frequencies, shade=True,
                      color=self.rgb_to_hex(0, 0, b_value))
 
@@ -349,7 +360,7 @@ class Facade:
         self.directory = os.getcwd()
         self.image_directory = os.path.join(self.directory, "images")
         #       calling necessary classes
-        self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_catacory_limit=30)
+        self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_category_limit=30)
         self.image_file_manager = ImageFileManager(self.directory)
         self.image_analysis = ImageAnalysis(self.directory)
 
@@ -362,13 +373,14 @@ class Facade:
             pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
         elif domain == "chanel.com":
             pages = self.image_web_scrapper.fetch_chanel_pages(url)
-            return True
         else:
             print("Program has not been designed yet for this website.")
             return None
-
+        print(pages)
+        return None
         # Iterating through each page to download the image.
         for page in pages:
+            print(page, directory_special_name, len(pages))
             self.image_web_scrapper.download_images(page, directory_special_name, amount_of_pages=len(pages))
 
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
@@ -399,9 +411,10 @@ class Facade:
 if __name__ == "__main__":
     facade = Facade()
 
-    website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
+    # website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
+    # facade.download_website(website_url, directory_special_name="-handbags")
+    # facade.analyze_all_images("louisvuitton.com-handbags")
 
     website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
-
-    # facade.download_website(website_url, directory_special_name="-handbags")
-    facade.analyze_all_images("louisvuitton.com-handbags")
+    facade.download_website(website_url, directory_special_name="-handbags")
+    # facade.analyze_all_images("chanel.com-handbags")
