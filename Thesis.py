@@ -66,7 +66,7 @@ class ImageWebScrapper:
         self.image_count = 1
         self.website_category_limit = website_category_limit
 
-    def download_images(self, url_images: list, directory_special_name: str, amount_of_pages: int):
+    def download_images(self, domain, url_images: list, directory_special_name: str, amount_of_pages: int):
         """
         Iterates through a list of url images that it downloads and saves in the appropriate directory.
         It saves it within the image_limit directory under the hostname.
@@ -75,8 +75,8 @@ class ImageWebScrapper:
         """
 
         #       Gets the domain from the URL and creates a directory for it.
-        domain = url_images[0]
-        domain = ('.'.join((urlparse(domain).netloc).split('.')[-2:])) + directory_special_name
+        domain = domain + directory_special_name
+        print("DOMAIN: ", domain)
         directory = os.path.join(self.image_directory, domain)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -89,16 +89,13 @@ class ImageWebScrapper:
             files.append(a)
         file_name_iteration = len(files)
 
-        total_amount_of_images = len(url_images) * amount_of_pages
-
         for count, url in enumerate(url_images):
-
             print(f"{count}/{len(url_images)}")
-
             # print("Fetching Image:", self.image_count, domain)
             delay = random.randint(0, 2)
             time.sleep(delay)
             # print(f"Delaying Fetch by {delay} seconds.")
+            print("URL: ", url)
             response = requests.get(url, headers=self.website_headers)
             if response.status_code == 200:
                 file_location = os.path.join(directory, f"{file_name_iteration}.png")
@@ -116,10 +113,12 @@ class ImageWebScrapper:
 
     def fetch_chanel_pages(self, website):
         count = 1
-        website_images = list()
+        
+        all_website_images = list()
         page_exists = True
         
         while (count <= self.website_category_limit) and page_exists:
+            website_images = list()
             try:
                 website_with_endpoint = website + f"page-{count}/"
                 print(website_with_endpoint)
@@ -140,12 +139,13 @@ class ImageWebScrapper:
                             urls = re.findall(r'(//www\.chanel\.com/[^ ]+\.jpg)', product_image_sizes)
                             for url in urls:
                                 if url.rfind("/w_1092/") != -1:
-                                    website_images.append(url[2:])
+                                    website_images.append("http://" + url[2:])
+                all_website_images.append(website_images)
                 count += 1
             except urllib.error.HTTPError as e:
                 print(e)
                 page_exists = False
-        return website_images
+        return all_website_images
 
     def fetch_louis_vuitton_pages(self, website):
         count = 0
@@ -177,6 +177,10 @@ class ImageWebScrapper:
                                 clean_url_images.append(url)
                 louis_vuitton_images_pages.append(clean_url_images)
                 count += 1
+                # TODO: Remove
+                if count == 2:
+                    break
+            #     ------
             except urllib.error.HTTPError as e:
                 print(e)
                 page_dne = False
@@ -376,12 +380,12 @@ class Facade:
         else:
             print("Program has not been designed yet for this website.")
             return None
-        print(pages)
-        return None
+
+        # print(pages)
+
         # Iterating through each page to download the image.
         for page in pages:
-            print(page, directory_special_name, len(pages))
-            self.image_web_scrapper.download_images(page, directory_special_name, amount_of_pages=len(pages))
+            self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
         # directory to analyze`
@@ -416,5 +420,5 @@ if __name__ == "__main__":
     # facade.analyze_all_images("louisvuitton.com-handbags")
 
     website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
-    facade.download_website(website_url, directory_special_name="-handbags")
-    # facade.analyze_all_images("chanel.com-handbags")
+    # facade.download_website(website_url, directory_special_name="-handbags")
+    facade.analyze_all_images("chanel.com-handbags")
