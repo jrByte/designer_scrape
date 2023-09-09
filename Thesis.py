@@ -24,15 +24,13 @@ import urllib
 
 from PIL import Image
 import os
+import cv2
 import requests
 from bs4 import BeautifulSoup
 import matplotlib.image as mpimg
 from collections import defaultdict, Counter
 import matplotlib.pyplot as plt
 from urllib.parse import urlparse
-
-
-# In[2]:
 
 
 class ImageFileManager:
@@ -52,8 +50,18 @@ class ImageFileManager:
             files.append(a)
         return files
 
-
-# In[3]:
+    def image_transparency_test(self, directory):
+        result = True
+        for file in os.listdir(directory):
+            with Image.open(os.path.join(directory, file)) as image:
+                image_data = np.array(image)
+                h, w, c = image_data.shape
+                if c == 4:
+                    print(f"Image Transparent [TRUE]: {file}")
+                else:
+                    print(f"Image Transparent [FALSE]: {file}")
+                    result = False
+        return result
 
 
 class ImageWebScrapper:
@@ -75,8 +83,8 @@ class ImageWebScrapper:
         """
 
         #       Gets the domain from the URL and creates a directory for it.
+
         domain = domain + directory_special_name
-        print("DOMAIN: ", domain)
         directory = os.path.join(self.image_directory, domain)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -90,12 +98,11 @@ class ImageWebScrapper:
         file_name_iteration = len(files)
 
         for count, url in enumerate(url_images):
-            print(f"{count}/{len(url_images)}")
             # print("Fetching Image:", self.image_count, domain)
             delay = random.randint(0, 2)
             time.sleep(delay)
             # print(f"Delaying Fetch by {delay} seconds.")
-            print("URL: ", url)
+            # print("URL: ", url)
             response = requests.get(url, headers=self.website_headers)
             if response.status_code == 200:
                 file_location = os.path.join(directory, f"{file_name_iteration}.png")
@@ -107,21 +114,18 @@ class ImageWebScrapper:
 
                 os.chmod(file_location, 0o755)
 
-                if self.image_count > self.image_limit:
-                    print(f"Image count reached: {self.image_limit}")
-                    return True
-
     def fetch_chanel_pages(self, website):
         count = 1
-        
+
         all_website_images = list()
         page_exists = True
-        
+        image_sizes_count = dict()
+        image_duplicate_check = list()
+
         while (count <= self.website_category_limit) and page_exists:
             website_images = list()
             try:
                 website_with_endpoint = website + f"page-{count}/"
-                print(website_with_endpoint)
                 req = requests.get(website_with_endpoint, headers=self.website_headers)
 
                 soup = BeautifulSoup(req.text, "html.parser", from_encoding="gzip")
@@ -130,21 +134,45 @@ class ImageWebScrapper:
                 if len(website_items) == 0:
                     page_exists = False
 
-                for images_in_website_items in website_items:
+                # print(f"Website: {website_with_endpoint}\nImage Count: [{len(website_items)}]")
+                image_sizes_count = {}
+                for website_image_count, images_in_website_items in enumerate(website_items):
                     images = images_in_website_items.find_all('picture', {"class": 'fs-element--inline'})
-                    for image in images:
+                    for image_count, image in enumerate(images):
                         source_tag = image.find('source')
                         if source_tag and 'srcset' in source_tag.attrs:
                             product_image_sizes = source_tag["srcset"]
                             urls = re.findall(r'(//www\.chanel\.com/[^ ]+\.jpg)', product_image_sizes)
+
+                            url_size = []
+
                             for url in urls:
-                                if url.rfind("/w_1092/") != -1:
+                                # if url.rfind("/w_1092/") != -1:
+                                url_split = url.split("/")
+                                size = (url_split[5][2:])
+                                id = url_split[6][:url_split[6].rfind("-")]
+
+                                url_size.append(size)
+
+                                if size in image_sizes_count:
+                                    image_sizes_count[size] += 1
+                                else:
+                                    image_sizes_count[size] = 1
+
+                                if int(size) >= 1000 and not (id in image_duplicate_check):
+                                    image_duplicate_check.append(id)
                                     website_images.append("http://" + url[2:])
+
+                            # print(f"URL http://[{urls[0][2:]}]: {url_size}")
+
                 all_website_images.append(website_images)
+                # print(all_website_images)
                 count += 1
             except urllib.error.HTTPError as e:
                 print(e)
                 page_exists = False
+
+            # print(image_sizes_count)
         return all_website_images
 
     def fetch_louis_vuitton_pages(self, website):
@@ -187,15 +215,12 @@ class ImageWebScrapper:
         return louis_vuitton_images_pages
 
 
-# In[18]:
-
-
 class ImageAnalysis:
-    def __init__(self, directory):
+    def __init__(self, directory, minimum_percentage_similarity):
         self.directory = directory
         self.image_directory = os.path.join(directory, "images")
         self.readme_images = os.path.join(directory, 'readme_images')
-        self.minimum_percentage_similarity = 20
+        self.minimum_percentage_similarity = minimum_percentage_similarity
 
     def get_top_values(self, top_colors_in_all_images):
         minimum_top_colors = 10
@@ -322,6 +347,10 @@ class ImageAnalysis:
         common_rgb_clone = most_common_rgb.copy()
         for rgb_index in range(len(common_rgb_clone)):
             for rgb_index2 in range(rgb_index + 1, len(common_rgb_clone)):
+
+                if len(most_common_rgb) <= 10:
+                    break
+
                 r1 = common_rgb_clone[rgb_index][0][0]
                 g1 = common_rgb_clone[rgb_index][0][1]
                 b1 = common_rgb_clone[rgb_index][0][2]
@@ -332,31 +361,38 @@ class ImageAnalysis:
 
                 percentage_of_similarity = self.get_rgb_distance(r1, g1, b1, r2, g2, b2)["percentage"]
 
-                if len(most_common_rgb) <= 10:
-                    break
-                else:
-                    if percentage_of_similarity <= self.minimum_percentage_similarity:
-                        if common_rgb_clone[rgb_index2] in most_common_rgb:
-                            most_common_rgb.remove(common_rgb_clone[rgb_index2])
+                if percentage_of_similarity <= self.minimum_percentage_similarity:
+                    if common_rgb_clone[rgb_index2] in most_common_rgb:
+                        most_common_rgb.remove(common_rgb_clone[rgb_index2])
 
         return most_common_rgb
 
     def file_to_image(self, file_path):
-        with Image.open(file_path).convert('RGB') as image:
-            return image
+        # with Image.open(file_path).convert('RGB') as image:
+        #     return image
+        return cv2.imread(file_path)
 
     def image_main_colors(self, image):
         by_color = defaultdict(int)
 
-        for pixel in image.getdata():
-            if pixel != (0, 0, 0) and pixel != (255, 255, 255):
-                by_color[pixel] += 1
+        # Convert the image from BGR to HSV color space
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+
+        # Create a mask for green color range in the HSV image
+        mask = cv2.inRange(hsv, (0, 0, 200), (180, 25, 255))
+
+        # Create an inverse boolean mask to find regions that are not green
+        inverse_imask = mask == 0
+
+        # Extract pixel values where the image is not masked (i.e., not green)
+        not_green_pixels = image[inverse_imask]
+
+        # Count the occurrences of each color
+        for pixel in not_green_pixels:
+            by_color[tuple(pixel)] += 1
 
         return by_color
-
-
-# In[35]:
-
 
 class Facade:
     def __init__(self):
@@ -366,11 +402,11 @@ class Facade:
         #       calling necessary classes
         self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_category_limit=30)
         self.image_file_manager = ImageFileManager(self.directory)
-        self.image_analysis = ImageAnalysis(self.directory)
+        self.image_analysis = ImageAnalysis(self.directory, 2)
 
     def download_website(self, url, directory_special_name=""):
         # Gets a list of image urls within the website.
-        domain = ('.'.join((urlparse(url).netloc).split('.')[-2:]))
+        domain = ('.'.join(urlparse(url).netloc.split('.')[-2:]))
 
         print(f"Scrapping {domain} for images.")
         if domain == "louisvuitton.com":
@@ -381,35 +417,36 @@ class Facade:
             print("Program has not been designed yet for this website.")
             return None
 
-        # print(pages)
-
         # Iterating through each page to download the image.
-        for page in pages:
+        for page_count, page in enumerate(pages):
+            print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
     def analyze_all_images(self, analyze_directory="louisvuitton.com"):
         # directory to analyze`
-        louis_vuitton_dir = os.path.join(self.image_directory, analyze_directory)
-        files = self.image_file_manager.get_files_list(louis_vuitton_dir)
+        designer_dir = os.path.join(self.image_directory, analyze_directory)
+        files = self.image_file_manager.get_files_list(designer_dir)
 
         all_images_rgb_count = list()
         for count, file in enumerate(files):
-            print(f"Analyzing file {(count + 1)} out of {len(files)}")
-            file_path = os.path.join(louis_vuitton_dir, file)
+            print(f"Analyzing file [{file}] {(count + 1)} out of {len(files)}")
+            file_path = os.path.join(designer_dir, file)
+
             image = self.image_analysis.file_to_image(file_path)
+
             colors = self.image_analysis.image_main_colors(image)
+
             most_common_colors = self.image_analysis.image_most_common_colors(colors)
+
             all_images_rgb_count += most_common_colors
 
-            # if count <= 20:
-            #     break
+            if count <= 1:
+                break
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
-        # self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
+        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
+        print(all_images_rgb_count)
         self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count)
-
-
-# In[34]:
 
 
 if __name__ == "__main__":
