@@ -24,8 +24,9 @@ import urllib
 
 from PIL import Image
 import os
-import cv2
+import csv
 import requests
+import cv2
 from bs4 import BeautifulSoup
 import matplotlib.image as mpimg
 from collections import defaultdict, Counter
@@ -36,6 +37,7 @@ from urllib.parse import urlparse
 class ImageFileManager:
     def __init__(self, directory):
         self.image_directory = os.path.join(directory, "images")
+        self.csv_directory = os.path.join(directory, "csv")
 
     def get_files_list(self, directory):
         print("Running get_files_list")
@@ -49,6 +51,21 @@ class ImageFileManager:
         for a in os.listdir(directory):
             files.append(a)
         return files
+
+    def save_data_to_csv(self, data, csv_name, column_names):
+        file_path = os.path.join(self.csv_directory, csv_name)
+        with open(file_path, "w", newline="") as open_csv_file:
+            wr = csv.DictWriter(open_csv_file, fieldnames=column_names)
+            wr.writeheader()
+
+            # Write the data rows
+            for rgb, count in data:
+                red, green, blue = rgb
+                wr.writerow({"Red": red, "Green": green, "Blue": blue, "Count": count})
+
+            open_csv_file.close()
+        print(f"CSV data saved to {file_path}")
+
 
     def image_transparency_test(self, directory):
         result = True
@@ -244,21 +261,25 @@ class ImageAnalysis:
 
         bar_width = 0.5  # You can adjust this value as needed
 
-        for rgb_colors, frequencies in rgb_with_frequency:
+        rgb_colors, frequencies = zip(*rgb_with_frequency)
+        max_value = max(frequencies)
+        scaled_frequencies = [(value / max_value) * 100 for value in frequencies]
+
+        for index, rgb_colors in enumerate(rgb_colors):
             r_value = rgb_colors[0]
             g_value = rgb_colors[1]
             b_value = rgb_colors[2]
 
             # Plotting bar graph red
-            ax.bar3d(r_value, yticks[0], 0, bar_width, bar_width, frequencies, shade=True,
+            ax.bar3d(r_value, yticks[0], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
                      color=self.rgb_to_hex(r_value, 0, 0))
 
             # Plotting bar graph green
-            ax.bar3d(g_value, yticks[1], 0, bar_width, bar_width, frequencies, shade=True,
+            ax.bar3d(g_value, yticks[1], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
                      color=self.rgb_to_hex(0, g_value, 0))
 
             # Plotting bar graph blue
-            ax.bar3d(b_value, yticks[2], 0, bar_width, bar_width, frequencies, shade=True,
+            ax.bar3d(b_value, yticks[2], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
                      color=self.rgb_to_hex(0, 0, b_value))
 
         ax.set_xlabel('X')
@@ -280,16 +301,16 @@ class ImageAnalysis:
         g_values = [color[1] for color in rgb_colors]
         b_values = [color[2] for color in rgb_colors]
 
+        max_value = max(frequencies)
+        scaled_numbers = [(value / max_value) * 200 for value in frequencies]
+
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
 
         # Convert RGB colors to hexadecimal notation
         hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
 
-        max_size = 199
-        color_sizes = [(num - 1) / max_size for num in frequencies]
-
-        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in color_sizes],
+        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in scaled_numbers],
                    alpha=0.7)
 
         ax.set_xlabel('(X) Red 0-255')
@@ -330,7 +351,7 @@ class ImageAnalysis:
             plt.show()
 
     def get_rgb_distance(self, r1, g1, b1, r2, g2, b2):
-        distance = math.sqrt(math.pow((r2 - r1), 2) + math.pow((g2 - g1), 2) + math.pow((b2 - b1), 2))
+        distance = math.sqrt(((int(r2) - int(r1)) ** 2) + ((int(g2) - int(g1)) ** 2) + ((int(b2) - int(b1)) ** 2))
         percentage = (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100
         return {"distance": distance, "percentage": percentage}
 
@@ -368,29 +389,16 @@ class ImageAnalysis:
         return most_common_rgb
 
     def file_to_image(self, file_path):
-        # with Image.open(file_path).convert('RGB') as image:
-        #     return image
-        return cv2.imread(file_path)
+        with Image.open(file_path).convert('RGB') as image:
+            return image
+        # return cv2.imread(file_path)
 
     def image_main_colors(self, image):
         by_color = defaultdict(int)
 
-        # Convert the image from BGR to HSV color space
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-
-
-        # Create a mask for green color range in the HSV image
-        mask = cv2.inRange(hsv, (0, 0, 200), (180, 25, 255))
-
-        # Create an inverse boolean mask to find regions that are not green
-        inverse_imask = mask == 0
-
-        # Extract pixel values where the image is not masked (i.e., not green)
-        not_green_pixels = image[inverse_imask]
-
-        # Count the occurrences of each color
-        for pixel in not_green_pixels:
-            by_color[tuple(pixel)] += 1
+        for pixel in image.getdata():
+            if pixel != (0, 0, 0) and pixel != (255, 255, 255):
+                by_color[pixel] += 1
 
         return by_color
 
@@ -402,7 +410,7 @@ class Facade:
         #       calling necessary classes
         self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_category_limit=30)
         self.image_file_manager = ImageFileManager(self.directory)
-        self.image_analysis = ImageAnalysis(self.directory, 2)
+        self.image_analysis = ImageAnalysis(self.directory, 0)
 
     def download_website(self, url, directory_special_name=""):
         # Gets a list of image urls within the website.
@@ -436,17 +444,19 @@ class Facade:
 
             colors = self.image_analysis.image_main_colors(image)
 
-            most_common_colors = self.image_analysis.image_most_common_colors(colors)
+            most_common_colors = self.image_analysis.image_most_common_colors(colors, 300)
 
             all_images_rgb_count += most_common_colors
 
-            if count <= 1:
-                break
+            # if count <= 1:
+            #     break
+        print(type(all_images_rgb_count), all_images_rgb_count)
+        self.image_file_manager.save_data_to_csv(all_images_rgb_count, analyze_directory, ["Red", "Green", "Blue", "Count"])
+        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
+        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count)
 
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
-        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
-        print(all_images_rgb_count)
-        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count)
+
 
 
 if __name__ == "__main__":

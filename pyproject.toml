@@ -16,7 +16,6 @@ opencv-python = "^4.5.3"
 scikit-learn = "^0.24.2"
 requests = "^2.26.0"
 beautifulsoup4 = "^4.9.3"
-mplcursors = "^0.4"
 pygame = "^2.1.0"
 
 [tool.poetry.dev-dependencies]
