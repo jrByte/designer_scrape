@@ -21,6 +21,8 @@ import math
 import random
 import time
 import urllib
+import colorsys
+
 
 from PIL import Image
 import os
@@ -65,7 +67,6 @@ class ImageFileManager:
 
             open_csv_file.close()
         print(f"CSV data saved to {file_path}")
-
 
     def image_transparency_test(self, directory):
         result = True
@@ -222,9 +223,7 @@ class ImageWebScrapper:
                                 clean_url_images.append(url)
                 louis_vuitton_images_pages.append(clean_url_images)
                 count += 1
-                # TODO: Remove
-                if count == 2:
-                    break
+
             #     ------
             except urllib.error.HTTPError as e:
                 print(e)
@@ -253,8 +252,38 @@ class ImageAnalysis:
         hex_value = ('#%02x%02x%02x' % (r, g, b))
         return hex_value
 
-    # TODO: working on this currently.
-    def graph_rgb_spectrogram(self, rgb_with_frequency):
+    def color_distance(self, rgb_1, rgb_2):
+        return round(math.sqrt(sum((x - y) ** 2 for x, y in zip(rgb_1, rgb_2))), 1)
+
+    def color_analysis(self, rgb_data):
+        r,g,b = rgb_data[0], rgb_data[1], rgb_data[2]
+        h, l, s = colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)
+
+        complementary_result = 255-r, 255-g, 255-b
+
+        monochromatic_result = [(int(r*i), int(g*i), int(b*i)) for i in [0.25, 0.5, 0.75]]
+
+        analogous_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-30, 30]]]
+
+        split_complementary_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-150, 150]]]
+
+        triadic_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-120, 120]]]
+
+        tetradic_result = [(int(r*255), int(g*255), int(b*255))for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [90, 180, 270]]]
+
+        results = {
+            "Complementary": complementary_result,
+            "Monochromatic": monochromatic_result,
+            "Analogous": analogous_result,
+            "Split Complementary": split_complementary_result,
+            "Triadic": triadic_result,
+            "Tetradic": tetradic_result
+            }
+
+        return results
+
+
+    def graph_rgb_spectrogram(self, rgb_with_frequency, file_name):
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         yticks = [2, 1, 0]
@@ -289,13 +318,13 @@ class ImageAnalysis:
         # On the y-axis let's only label the discrete values that we have data for.
         ax.set_yticks(yticks)
 
-        ax.view_init(elev=60, azim=-45)
-        save_location = os.path.join(self.readme_images, 'rgb_3d_bar_graph.png')
+        ax.view_init(elev=25, azim=108)
+        save_location = os.path.join(self.readme_images, f'{file_name}_rgb_3d_bar_graph.png')
         plt.savefig(save_location, dpi=600)
 
-        plt.show()
+        # plt.show()
 
-    def graph_3d_rgb_frequency(self, rgb_with_frequency):
+    def graph_3d_rgb_frequency(self, rgb_with_frequency, file_name):
         rgb_colors, frequencies = zip(*rgb_with_frequency)
         r_values = [color[0] for color in rgb_colors]
         g_values = [color[1] for color in rgb_colors]
@@ -310,7 +339,8 @@ class ImageAnalysis:
         # Convert RGB colors to hexadecimal notation
         hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
 
-        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o', s=[color_size for color_size in scaled_numbers],
+        ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o',
+                   s=[color_size for color_size in scaled_numbers],
                    alpha=0.7)
 
         ax.set_xlabel('(X) Red 0-255')
@@ -321,20 +351,20 @@ class ImageAnalysis:
         ax.set_ylim(ax.get_ylim()[::-1])
 
         ax.view_init(elev=70, azim=-45)
-        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_1.png')
+        save_location = os.path.join(self.readme_images, f'{file_name}_rgb_scatter_plot_1.png')
         plt.savefig(save_location, dpi=600)
 
         ax.view_init(elev=5, azim=45)
-        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_2.png')
+        save_location = os.path.join(self.readme_images, f'{file_name}_rgb_scatter_plot_2.png')
         plt.savefig(save_location, dpi=600)
 
         ax.view_init(elev=90, azim=45)
-        save_location = os.path.join(self.readme_images, 'rgb_scatter_plot_3.png')
+        save_location = os.path.join(self.readme_images, f'{file_name}_rgb_scatter_plot_3.png')
         plt.savefig(save_location, dpi=600)
 
         name = (os.path.dirname(self.directory))
         plt.title((name + ": RGB Scatter Plot"))
-        plt.show()
+        # plt.show()
 
     def show_image(self, image_path):
         if image_path:
@@ -350,44 +380,6 @@ class ImageAnalysis:
             # Show the plot
             plt.show()
 
-    def get_rgb_distance(self, r1, g1, b1, r2, g2, b2):
-        distance = math.sqrt(((int(r2) - int(r1)) ** 2) + ((int(g2) - int(g1)) ** 2) + ((int(b2) - int(b1)) ** 2))
-        percentage = (distance / (math.sqrt(math.pow(255, 2) + math.pow(255, 2) + math.pow(255, 2)))) * 100
-        return {"distance": distance, "percentage": percentage}
-
-    def image_most_common_colors(self, by_color, most_common=300):
-        """
-        Called by image_main_colors. Gets all the most common colors in the image. That counts the rgb values of each
-        pixel in the image. While making sure that shades of colors are not included based on a certain
-        amount of similarity.
-
-        :param most_common:
-        :return: most_common_rgb: returns a Counter datatype. Of the counted rbg values in the image.
-        """
-        most_common_rgb = Counter(by_color).most_common(most_common)
-        common_rgb_clone = most_common_rgb.copy()
-        for rgb_index in range(len(common_rgb_clone)):
-            for rgb_index2 in range(rgb_index + 1, len(common_rgb_clone)):
-
-                if len(most_common_rgb) <= 10:
-                    break
-
-                r1 = common_rgb_clone[rgb_index][0][0]
-                g1 = common_rgb_clone[rgb_index][0][1]
-                b1 = common_rgb_clone[rgb_index][0][2]
-
-                r2 = common_rgb_clone[rgb_index2][0][0]
-                g2 = common_rgb_clone[rgb_index2][0][1]
-                b2 = common_rgb_clone[rgb_index2][0][2]
-
-                percentage_of_similarity = self.get_rgb_distance(r1, g1, b1, r2, g2, b2)["percentage"]
-
-                if percentage_of_similarity <= self.minimum_percentage_similarity:
-                    if common_rgb_clone[rgb_index2] in most_common_rgb:
-                        most_common_rgb.remove(common_rgb_clone[rgb_index2])
-
-        return most_common_rgb
-
     def file_to_image(self, file_path):
         with Image.open(file_path).convert('RGB') as image:
             return image
@@ -401,6 +393,7 @@ class ImageAnalysis:
                 by_color[pixel] += 1
 
         return by_color
+
 
 class Facade:
     def __init__(self):
@@ -430,33 +423,83 @@ class Facade:
             print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
-    def analyze_all_images(self, analyze_directory="louisvuitton.com"):
+    def analyze_all_images(self, analyze_directory="louisvuitton.com", image_sensitivity=25):
         # directory to analyze`
         designer_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(designer_dir)
-
+        color_count_detection = Counter()
         all_images_rgb_count = list()
+
         for count, file in enumerate(files):
-            print(f"Analyzing file [{file}] {(count + 1)} out of {len(files)}")
+            print(f"\nAnalyzing file [{file}] {(count + 1)} out of {len(files)}")
             file_path = os.path.join(designer_dir, file)
 
             image = self.image_analysis.file_to_image(file_path)
-
             colors = self.image_analysis.image_main_colors(image)
-
-            most_common_colors = self.image_analysis.image_most_common_colors(colors, 300)
-
+            most_common_colors = Counter(colors).most_common(image_sensitivity)
             all_images_rgb_count += most_common_colors
+
+            # analytics
+            main_color = Counter(colors).most_common(1)
+            results = self.image_analysis.color_analysis(main_color[0][0])
+
+            print("\nSingle Image Data Analytics:")
+            print(f"Most Common Color of the image: {main_color[0][0]}, count: {main_color[0][1]}")
+            [print(f"{key}: {value}") for key, value in results.items()]
+
+            noteable_values = []
+            most_common_colors.remove(main_color[0])
+
+            for image_top_colors in most_common_colors:
+                # print("-----------------------------")
+                # print("New top color compared: ", image_top_colors)
+
+                closest_distance = 25
+                max = closest_distance
+
+                for key, primary_analyzed_colors in results.items():
+                    # print(f"Data Analytics: {key}", end=" ")
+                    comparison = None
+                    d = None
+
+                    if len(primary_analyzed_colors) == 1 or type(primary_analyzed_colors) == tuple:
+                        d = self.image_analysis.color_distance(image_top_colors[0], primary_analyzed_colors)
+                        comparison = {"image_top_color": image_top_colors[0], "analyzed_color": primary_analyzed_colors, "distance": d}
+
+                        # print(image_top_colors, " : ", primary_analyzed_colors, " distance: ", d, end=" ")
+
+                    else:
+                        for index, analyzed_color in enumerate(primary_analyzed_colors):
+                            d = self.image_analysis.color_distance(image_top_colors[0], analyzed_color)
+                            comparison = {"image_top_color": image_top_colors[0], "analyzed_color": analyzed_color, "distance": d}
+                            # print(image_top_colors, " : ", analyzed_color, " distance: ", d, end=" ")
+
+                    if 0 < d <= max and closest_distance <= d:
+                        noteable_values.append({key: comparison})
+                        closest_distance = d
+
+            for i in noteable_values:
+                for key in i.keys():
+                    color_count_detection[str(key)] += 1
+
+            print(color_count_detection)
 
             # if count <= 1:
             #     break
-        print(type(all_images_rgb_count), all_images_rgb_count)
-        self.image_file_manager.save_data_to_csv(all_images_rgb_count, analyze_directory, ["Red", "Green", "Blue", "Count"])
-        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count)
-        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count)
 
+        print()
+        self.image_file_manager.save_data_to_csv(all_images_rgb_count, analyze_directory,
+                                                 ["Red", "Green", "Blue", "Count"])
+
+        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, analyze_directory)
+        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, analyze_directory)
+
+        print("Total Image Collection Analysis:")
+        for color_scheme, count in color_count_detection.items():
+            print(f"{color_scheme}, {round((count / len(files)) * 100, 2)}%")
+
+        # TODO PIE PLOT
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
-
 
 
 if __name__ == "__main__":
@@ -468,4 +511,5 @@ if __name__ == "__main__":
 
     website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
     # facade.download_website(website_url, directory_special_name="-handbags")
-    facade.analyze_all_images("chanel.com-handbags")
+    # facade.analyze_all_images("chanel.com-handbags", image_sensitivity=10)
+    facade.analyze_all_images("louisvuitton.com-handbags", image_sensitivity=10)
