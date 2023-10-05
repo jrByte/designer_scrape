@@ -448,7 +448,6 @@ class Facade:
             [print(f"{key}: {value}") for key, value in results.items()]
 
             noteable_values = []
-
             most_common_colors.remove(main_color[0])
 
             for image_top_colors in most_common_colors:
@@ -458,7 +457,7 @@ class Facade:
                 closest_distance = 25
                 max = closest_distance
 
-                if image_top_colors[0] == (255, 0, 0) or image_top_colors[0] == (0, 255, 0) or image_top_colors[0] == (0, 0, 255):
+                # if image_top_colors[0] == (255, 0, 0) or image_top_colors[0] == (0, 255, 0) or image_top_colors[0] == (0, 0, 255):
 
 
                 for key, primary_analyzed_colors in results.items():
