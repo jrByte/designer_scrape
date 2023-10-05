@@ -389,7 +389,7 @@ class ImageAnalysis:
         by_color = defaultdict(int)
 
         for pixel in image.getdata():
-            if pixel != (0, 0, 0) and pixel != (255, 255, 255):
+            if pixel != (0, 0, 0) and pixel != (255, 255, 255) and pixel != (76, 105, 113):
                 by_color[pixel] += 1
 
         return by_color
@@ -423,7 +423,7 @@ class Facade:
             print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
-    def analyze_all_images(self, analyze_directory="louisvuitton.com", image_sensitivity=25):
+    def analyze_all_images(self, analyze_directory, image_sensitivity=25):
         # directory to analyze`
         designer_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(designer_dir)
@@ -448,6 +448,7 @@ class Facade:
             [print(f"{key}: {value}") for key, value in results.items()]
 
             noteable_values = []
+
             most_common_colors.remove(main_color[0])
 
             for image_top_colors in most_common_colors:
@@ -456,6 +457,9 @@ class Facade:
 
                 closest_distance = 25
                 max = closest_distance
+
+                if image_top_colors[0] == (255, 0, 0) or image_top_colors[0] == (0, 255, 0) or image_top_colors[0] == (0, 0, 255):
+
 
                 for key, primary_analyzed_colors in results.items():
                     # print(f"Data Analytics: {key}", end=" ")
@@ -474,7 +478,7 @@ class Facade:
                             comparison = {"image_top_color": image_top_colors[0], "analyzed_color": analyzed_color, "distance": d}
                             # print(image_top_colors, " : ", analyzed_color, " distance: ", d, end=" ")
 
-                    if 0 < d <= max and closest_distance <= d:
+                    if 0 < d <= max and (closest_distance <= d ):
                         noteable_values.append({key: comparison})
                         closest_distance = d
 
@@ -482,7 +486,8 @@ class Facade:
                 for key in i.keys():
                     color_count_detection[str(key)] += 1
 
-            print(color_count_detection)
+            if noteable_values:
+                print("Detected color schema:", noteable_values)
 
             # if count <= 1:
             #     break
@@ -494,9 +499,13 @@ class Facade:
         self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, analyze_directory)
         self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, analyze_directory)
 
-        print("Total Image Collection Analysis:")
+        print("\nTotal Image Collection Analysis:")
+        total = len(files)
         for color_scheme, count in color_count_detection.items():
-            print(f"{color_scheme}, {round((count / len(files)) * 100, 2)}%")
+            print(f"{color_scheme}: {round((count / len(files)) * 100, 2)}% ({count} / {len(files)})")
+            total -= count
+
+        print(f"Remaining images with undetected color schemes: {round((total / len(files)) * 100, 2)}%")
 
         # TODO PIE PLOT
         # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
