@@ -10,7 +10,7 @@ Poetry was used as a package manager for this codebase.
 Python 3.7 had the best compatibility with all the pacakges.
 
 ## Selected Analysis
-For the most consistent results, handbags have been the only thing analyzed. This is because the porportions remain relativly the same and the view is the same within lots of brands. It is planned to enable other forms of object recognition to remove subjects and other items from different types of aperal items. 
+For the most consistent results, handbags have been the only thing analyzed. This is because the porportions remain relativly the same and the view is the same within lots of brands. It is planned to enable other forms of object recognition to remove subjects and other items from different types of aperal items, so that they can be analyzed.
 
 ## Results
 
