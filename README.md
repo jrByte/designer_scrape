@@ -1,19 +1,29 @@
 # Designer Scrape
 
 ## Summary
-Designer scrape is a simple algorithm that I am using to collect data from various designer websites. Currently, only scraping of the louis vuitton website has been implemented, but I plan on adding more once I fine tune the color algorithm. It is highly advised to use a VPN to hide your IP address when scraping the images of the website to prevent your IP address from being blocked or restricted from other websites!!
+I have been recently intrigued by the color usage on popular luxury brands. This allurement of these brands on our population could have intriguing insights, and large part of this is color. What can we learn from color usage in the most popular brands and could we apply this research in other fields? I wrote my dissertation on the luxury brands color usage and their potential brand strategy when it came to color. The code to analyze and understand the brands is here for display and is being continously improved. Feel free to suggest ideas or problems with the code. 
+
+IMPORTANT: Please keep in mind, this code should only be used for ethical purposes and the webscrapping should be done in accordance with the company and region you are located in. Hint: Brands often display the terms in their ROBOT.txt. 
 
 ## Installation
-I use poetry a package manager to help install all my dependencies that I use for this project. Python 3.9 is used for this project and is run on Windows 10.
+Poetry was used as a package manager for this codebase. 
+Python 3.7 had the best compatibility with all the pacakges.
 
-## Color Algorithm 
-Currently, the algorithm individually searches through every pixel and identifies the color of that pixel with RGB. This is then stored and counted for everytime there is an identical version of that RGB found. Anything that is similar to a certain percentage is remove because of them being considered shadows or shading of that color and are also very high in digits. The percentage of sensitivity of shades can be adjusted when calling the most_common_colors method, but is declared beforehand when creating an instance of the class image_scrape. This will be improved to be more OOP in the future.
+## Selected Analysis
+For the most consistent results, handbags have been the only thing analyzed. This is because the porportions remain relativly the same and the view is the same within lots of brands. It is planned to enable other forms of object recognition to remove subjects and other items from different types of aperal items, so that they can be analyzed.
 
 ## Results
+Louis Vuitton scatterplot of collected RGB colors found in the handbag section:
 
-![Alt text](readme_images/Louis_Vuitton_colors.PNG?raw=true "Louis Vuitton image collection of handbag colors")
-https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/
+
+1st view:
+![Alt text](readme_images/rgb_scatter_plot_1.png?raw=true "Louis Vuitton image collection of handbag colors")
+
+2nd view:
+![Alt text](readme_images/rgb_scatter_plot_2.png?raw=true "Louis Vuitton image collection of handbag colors")
+
 
 ## Agenda
-- Color algorithm is planned on being improved with object recognition in the images to identifiy symbols that use particular colors for more accurate color identification.
-- Expansion of other designer brands being scraped and including price points of each color. Note: Louis Vuitton doesn't display this, but other brands like Gucci do.
+- Build abnormality machine learning algorithms to detect ongoing changes and potential trend predictions.
+- Build a profile of most of the brands and compare how the current industry is utilizing colors in their products.
+- Build a machine learning alg. that can suggest color combinations based on one color input.
