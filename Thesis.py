@@ -23,7 +23,6 @@ import time
 import urllib
 import colorsys
 
-
 from PIL import Image
 import os
 import csv
@@ -34,6 +33,7 @@ import matplotlib.image as mpimg
 from collections import defaultdict, Counter
 import matplotlib.pyplot as plt
 from urllib.parse import urlparse
+from sklearn.cluster import KMeans
 
 
 class ImageFileManager:
@@ -55,8 +55,8 @@ class ImageFileManager:
         return files
 
     def save_data_to_csv(self, data, csv_name, column_names):
-        file_path = os.path.join(self.csv_directory, csv_name)
-        with open(file_path, "w", newline="") as open_csv_file:
+        full_file_path = os.path.join(self.csv_directory, csv_name)
+        with open(full_file_path, "w", newline="") as open_csv_file:
             wr = csv.DictWriter(open_csv_file, fieldnames=column_names)
             wr.writeheader()
 
@@ -66,20 +66,7 @@ class ImageFileManager:
                 wr.writerow({"Red": red, "Green": green, "Blue": blue, "Count": count})
 
             open_csv_file.close()
-        print(f"CSV data saved to {file_path}")
-
-    def image_transparency_test(self, directory):
-        result = True
-        for file in os.listdir(directory):
-            with Image.open(os.path.join(directory, file)) as image:
-                image_data = np.array(image)
-                h, w, c = image_data.shape
-                if c == 4:
-                    print(f"Image Transparent [TRUE]: {file}")
-                else:
-                    print(f"Image Transparent [FALSE]: {file}")
-                    result = False
-        return result
+        print(f"CSV data saved to {full_file_path}")
 
 
 class ImageWebScrapper:
@@ -116,8 +103,7 @@ class ImageWebScrapper:
         file_name_iteration = len(files)
 
         for count, url in enumerate(url_images):
-            # print("Fetching Image:", self.image_count, domain)
-            delay = random.randint(0, 2)
+            delay = random.randint(1, 3)
             time.sleep(delay)
             # print(f"Delaying Fetch by {delay} seconds.")
             # print("URL: ", url)
@@ -249,39 +235,81 @@ class ImageAnalysis:
         return top_values
 
     def rgb_to_hex(self, r, g, b):
-        hex_value = ('#%02x%02x%02x' % (r, g, b))
-        return hex_value
+        return '#%02x%02x%02x' % (r, g, b)
 
     def color_distance(self, rgb_1, rgb_2):
-        return round(math.sqrt(sum((x - y) ** 2 for x, y in zip(rgb_1, rgb_2))), 1)
+        distance = 0
+        for x, y in zip(rgb_1, rgb_2):
+            distance += (x - y) ** 2
+        return round(math.sqrt(distance), 2)
 
-    def color_analysis(self, rgb_data):
-        r,g,b = rgb_data[0], rgb_data[1], rgb_data[2]
-        h, l, s = colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)
+    def color_analysis(self, data):
+        r, g, b = zip(*data)
+        simplified_r, simplified_g, simplified_b = (r / 255.0, g / 255.0, b / 255.0)
+        h, l, s = colorsys.rgb_to_hls(simplified_r, simplified_g, simplified_b)
+        triadic_result = []
+        tetradic_result = []
+        monochro_result = []
+        analogous_result = []
+        s_complementary_result = []
 
-        complementary_result = 255-r, 255-g, 255-b
+        complementary_result = (255 - r), (255 - g), (255 - b)
 
-        monochromatic_result = [(int(r*i), int(g*i), int(b*i)) for i in [0.25, 0.5, 0.75]]
+        for percentage in [(1 / 4), (1 / 2), (3 / 4)]:
+            monochro_result.append((int(r * percentage), int(g * percentage), int(b * percentage)))
 
-        analogous_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-30, 30]]]
+        for degree in [-30, 30]:
+            adjusted_hue_for_color = ((h + degree) / 360)
+            r, g, b = colorsys.hls_to_rgb(adjusted_hue_for_color, l, s)
+            analogous_result.append(((r * 255), (g * 255), (b * 255)))
 
-        split_complementary_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-150, 150]]]
+        for degree in [-150, 150]:
+            adjusted_hue_for_color = ((h + degree) / 360)
+            r, g, b = colorsys.hls_to_rgb(adjusted_hue_for_color, l, s)
+            s_complementary_result.append(((r * 255), (g * 255), (b * 255)))
 
-        triadic_result = [(int(r*255), int(g*255), int(b*255)) for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [-120, 120]]]
+        for degree in [-120, 120]:
+            adjusted_hue_for_color = ((h + degree) / 360)
+            r, g, b = colorsys.hls_to_rgb(adjusted_hue_for_color, l, s)
+            triadic_result.append(((r * 255), (g * 255), (b * 255)))
 
-        tetradic_result = [(int(r*255), int(g*255), int(b*255))for r, g, b in [colorsys.hls_to_rgb((h + i/360.0) % 1, l, s) for i in [90, 180, 270]]]
+        for degree in [90, 180, 270]:
+            adjusted_hue_for_color = ((h + degree) / 360)
+            r, g, b = colorsys.hls_to_rgb(adjusted_hue_for_color, l, s)
+            tetradic_result.append(((r * 255), (g * 255), (b * 255)))
 
         results = {
             "Complementary": complementary_result,
-            "Monochromatic": monochromatic_result,
+            "Monochromatic": monochro_result,
             "Analogous": analogous_result,
-            "Split Complementary": split_complementary_result,
+            "Split Complementary": s_complementary_result,
             "Triadic": triadic_result,
             "Tetradic": tetradic_result
-            }
+        }
 
         return results
 
+    def pie_chart(self, rgb_with_frequency, file_name):
+        rgb_colors, frequencies = zip(*sorted(rgb_with_frequency))
+
+        # Convert RGB to hex and sort them
+        sorted_hex = []
+        sorted_hex_legend = []
+        for count, (r, g, b) in enumerate(rgb_colors):
+            sorted_hex.append(self.rgb_to_hex(r, g, b))
+            if len(sorted_hex_legend) < 10:
+                sorted_hex_legend.append(
+                    f"{self.rgb_to_hex(r, g, b)} : {round(frequencies[count] / sum(frequencies), 2) * 100}%")
+
+        # Create a new figure and axes (2D)
+        fig, ax = plt.subplots()
+
+        # Plotting using the ax object
+        ax.pie(frequencies, startangle=90, colors=sorted_hex)
+        ax.legend(sorted_hex_legend, loc='center left', fontsize=7, bbox_to_anchor=(1, 0.5))
+
+        save_location = os.path.join(self.readme_images, f'{file_name}_pie_chart.png')
+        plt.savefig(save_location, dpi=600)
 
     def graph_rgb_spectrogram(self, rgb_with_frequency, file_name):
         fig = plt.figure()
@@ -291,25 +319,27 @@ class ImageAnalysis:
         bar_width = 0.5  # You can adjust this value as needed
 
         rgb_colors, frequencies = zip(*rgb_with_frequency)
-        max_value = max(frequencies)
-        scaled_frequencies = [(value / max_value) * 100 for value in frequencies]
+        total_value = sum(frequencies)
+        scaled_frequencies = [(value / total_value) * 100 for value in frequencies]
 
         for index, rgb_colors in enumerate(rgb_colors):
             r_value = rgb_colors[0]
             g_value = rgb_colors[1]
             b_value = rgb_colors[2]
 
+            hex_color_r = self.rgb_to_hex(0, 0, b_value)
+            hex_color_g = self.rgb_to_hex(0, g_value, 0)
+            hex_color_b = self.rgb_to_hex(r_value, 0, 0)
+
             # Plotting bar graph red
-            ax.bar3d(r_value, yticks[0], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
-                     color=self.rgb_to_hex(r_value, 0, 0))
-
+            ax.bar3d(r_value, 2, 0, 0.5, 0.5, scaled_frequencies[index], shade=True,
+                     color=hex_color_r)
             # Plotting bar graph green
-            ax.bar3d(g_value, yticks[1], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
-                     color=self.rgb_to_hex(0, g_value, 0))
-
+            ax.bar3d(g_value, 1, 0, 0.5, 0.5, scaled_frequencies[index], shade=True,
+                     color=hex_color_g)
             # Plotting bar graph blue
-            ax.bar3d(b_value, yticks[2], 0, bar_width, bar_width, scaled_frequencies[index], shade=True,
-                     color=self.rgb_to_hex(0, 0, b_value))
+            ax.bar3d(b_value, 0, 0, 0.5, 0.5, scaled_frequencies[index], shade=True,
+                     color=hex_color_b)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -321,8 +351,6 @@ class ImageAnalysis:
         ax.view_init(elev=25, azim=108)
         save_location = os.path.join(self.readme_images, f'{file_name}_rgb_3d_bar_graph.png')
         plt.savefig(save_location, dpi=600)
-
-        # plt.show()
 
     def graph_3d_rgb_frequency(self, rgb_with_frequency, file_name):
         rgb_colors, frequencies = zip(*rgb_with_frequency)
@@ -336,16 +364,17 @@ class ImageAnalysis:
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
 
-        # Convert RGB colors to hexadecimal notation
-        hex_colors = ['#%02x%02x%02x' % color for color in rgb_colors]
+        hex_colors = []
+        for c in rgb_colors:
+            hex_colors.append(self.rgb_to_hex(c))
 
         ax.scatter(r_values, g_values, b_values, c=hex_colors, marker='o',
                    s=[color_size for color_size in scaled_numbers],
                    alpha=0.7)
 
-        ax.set_xlabel('(X) Red 0-255')
-        ax.set_ylabel('(Y) Green 0-255')
-        ax.set_zlabel('(Z) Blue 0-255')
+        ax.set_xlabel('(x-axis) Red')
+        ax.set_ylabel('(y-axis) Green')
+        ax.set_zlabel('(z-axis) Blue')
 
         ax = plt.gca()
         ax.set_ylim(ax.get_ylim()[::-1])
@@ -389,10 +418,30 @@ class ImageAnalysis:
         by_color = defaultdict(int)
 
         for pixel in image.getdata():
-            if pixel != (0, 0, 0) and pixel != (255, 255, 255) and pixel != (76, 105, 113):
+            if pixel not in [(0, 0, 0), (255, 255, 255), (76, 105, 113)]:
                 by_color[pixel] += 1
 
         return by_color
+
+    def find_common_colors(self, color, k_sensitivity):
+        np_points = np.array([list(k) + [v] for k, v in color.items()])
+        colors = np_points[:, :3]
+        frequencies = np_points[:, 3]
+
+        # Applying KMeans clustering
+        kmeans = KMeans(n_clusters=k_sensitivity, random_state=0).fit(colors, sample_weight=frequencies)
+
+        # Initializing a counter to store the summed frequencies of colors per cluster
+        cluster = Counter()
+
+        # Assign each original color to the closest representative color
+        for idx, label in enumerate(kmeans.labels_):
+            rgb_tuple = tuple(kmeans.cluster_centers_[label].astype(int))
+            r, g, b = int(rgb_tuple[0]), int(rgb_tuple[1]), int(rgb_tuple[2])
+
+            cluster[r, g, b] += int(frequencies[idx])
+
+        return cluster
 
 
 class Facade:
@@ -423,12 +472,15 @@ class Facade:
             print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
-    def analyze_all_images(self, analyze_directory, image_sensitivity=25):
+    def analyze_all_images(self, analyze_directory, image_sensitivity=10, max=25):
         # directory to analyze`
+        global top_main_color
         designer_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(designer_dir)
         color_count_detection = Counter()
         all_images_rgb_count = list()
+        top_10_colors = Counter()
+        total_pixels = 0
 
         for count, file in enumerate(files):
             print(f"\nAnalyzing file [{file}] {(count + 1)} out of {len(files)}")
@@ -436,18 +488,26 @@ class Facade:
 
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
-            most_common_colors = Counter(colors).most_common(image_sensitivity)
+
+            most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
+            length = len(most_common_colors)
+            most_common_colors = most_common_colors.most_common(length)
+
+
             all_images_rgb_count += most_common_colors
 
+            for rgb, rgb_count in most_common_colors:
+                top_10_colors[rgb_count] = rgb
+                total_pixels += rgb_count
+
             # analytics
-            main_color = Counter(colors).most_common(1)
+            main_color = most_common_colors
             results = self.image_analysis.color_analysis(main_color[0][0])
 
             print("\nSingle Image Data Analytics:")
-            print(f"Most Common Color of the image: {main_color[0][0]}, count: {main_color[0][1]}")
-            [print(f"{key}: {value}") for key, value in results.items()]
 
             noteable_values = []
+
             most_common_colors.remove(main_color[0])
 
             for image_top_colors in most_common_colors:
@@ -455,31 +515,33 @@ class Facade:
                 # print("New top color compared: ", image_top_colors)
 
                 closest_distance = 25
-                max = closest_distance
-
-                # if image_top_colors[0] == (255, 0, 0) or image_top_colors[0] == (0, 255, 0) or image_top_colors[0] == (0, 0, 255):
-
 
                 for key, primary_analyzed_colors in results.items():
                     # print(f"Data Analytics: {key}", end=" ")
                     comparison = None
-                    d = None
+                    d_from_color = None
 
                     if len(primary_analyzed_colors) == 1 or type(primary_analyzed_colors) == tuple:
-                        d = self.image_analysis.color_distance(image_top_colors[0], primary_analyzed_colors)
-                        comparison = {"image_top_color": image_top_colors[0], "analyzed_color": primary_analyzed_colors, "distance": d}
+
+                        top_main_color = image_top_colors[0]
+                        d_from_color = self.image_analysis.color_distance(top_main_color, primary_analyzed_colors)
+
+                        comparison = {"image_top_color": top_main_color,
+                                      "analyzed_color": primary_analyzed_colors,
+                                      "distance": d_from_color}
 
                         # print(image_top_colors, " : ", primary_analyzed_colors, " distance: ", d, end=" ")
 
                     else:
                         for index, analyzed_color in enumerate(primary_analyzed_colors):
-                            d = self.image_analysis.color_distance(image_top_colors[0], analyzed_color)
-                            comparison = {"image_top_color": image_top_colors[0], "analyzed_color": analyzed_color, "distance": d}
+                            d_from_color = self.image_analysis.color_distance(top_main_color, analyzed_color)
+                            comparison = {"image_top_color": top_main_color, "analyzed_color": analyzed_color,
+                                          "distance": d_from_color}
                             # print(image_top_colors, " : ", analyzed_color, " distance: ", d, end=" ")
 
-                    if 0 < d <= max and (closest_distance <= d ):
+                    if 0 < d_from_color <= max and (closest_distance <= d_from_color):
                         noteable_values.append({key: comparison})
-                        closest_distance = d
+                        closest_distance = d_from_color
 
             for i in noteable_values:
                 for key in i.keys():
@@ -497,6 +559,7 @@ class Facade:
 
         self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, analyze_directory)
         self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, analyze_directory)
+        self.image_analysis.pie_chart(all_images_rgb_count, analyze_directory)
 
         print("\nTotal Image Collection Analysis:")
         total = len(files)
@@ -506,8 +569,11 @@ class Facade:
 
         print(f"Remaining images with undetected color schemes: {round((total / len(files)) * 100, 2)}%")
 
-        # TODO PIE PLOT
-        # self.image_analysis.plot_rgb_scatter_with_frequency(all_images_rgb_count)
+        print(top_10_colors.most_common(10))
+
+        for key, value in top_10_colors.most_common(10):
+            percent = round((int(key) / total_pixels), 2) * 100
+            print(f"{percent}% : {value}")
 
 
 if __name__ == "__main__":
@@ -519,5 +585,5 @@ if __name__ == "__main__":
 
     website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
     # facade.download_website(website_url, directory_special_name="-handbags")
-    # facade.analyze_all_images("chanel.com-handbags", image_sensitivity=10)
-    facade.analyze_all_images("louisvuitton.com-handbags", image_sensitivity=10)
+    facade.analyze_all_images("chanel.com-handbags", image_sensitivity=3, max=25)
+    # facade.analyze_all_images("louisvuitton.com-handbags", image_sensitivity=3, max=25)
