@@ -80,15 +80,6 @@ class ImageWebScrapper:
         self.website_category_limit = website_category_limit
 
     def download_images(self, domain, url_images: list, directory_special_name: str, amount_of_pages: int):
-        """
-        Iterates through a list of url images that it downloads and saves in the appropriate directory.
-        It saves it within the image_limit directory under the hostname.
-
-        :param url_images: a list of urls that are direct links to images.
-        """
-
-        #       Gets the domain from the URL and creates a directory for it.
-
         domain = domain + directory_special_name
         directory = os.path.join(self.image_directory, domain)
         if not os.path.exists(directory):
@@ -96,7 +87,6 @@ class ImageWebScrapper:
 
         os.chmod(directory, 0o755)
 
-        #       Gets first file name to avoid overwritting other files.
         files = list()
         for a in os.listdir(directory):
             files.append(a)
@@ -105,8 +95,6 @@ class ImageWebScrapper:
         for count, url in enumerate(url_images):
             delay = random.randint(1, 3)
             time.sleep(delay)
-            # print(f"Delaying Fetch by {delay} seconds.")
-            # print("URL: ", url)
             response = requests.get(url, headers=self.website_headers)
             if response.status_code == 200:
                 file_location = os.path.join(directory, f"{file_name_iteration}.png")
@@ -123,7 +111,6 @@ class ImageWebScrapper:
 
         all_website_images = list()
         page_exists = True
-        image_sizes_count = dict()
         image_duplicate_check = list()
 
         while (count <= self.website_category_limit) and page_exists:
@@ -138,7 +125,6 @@ class ImageWebScrapper:
                 if len(website_items) == 0:
                     page_exists = False
 
-                # print(f"Website: {website_with_endpoint}\nImage Count: [{len(website_items)}]")
                 image_sizes_count = {}
                 for website_image_count, images_in_website_items in enumerate(website_items):
                     images = images_in_website_items.find_all('picture', {"class": 'fs-element--inline'})
@@ -151,7 +137,6 @@ class ImageWebScrapper:
                             url_size = []
 
                             for url in urls:
-                                # if url.rfind("/w_1092/") != -1:
                                 url_split = url.split("/")
                                 size = (url_split[5][2:])
                                 id = url_split[6][:url_split[6].rfind("-")]
@@ -166,17 +151,11 @@ class ImageWebScrapper:
                                 if int(size) >= 1000 and not (id in image_duplicate_check):
                                     image_duplicate_check.append(id)
                                     website_images.append("http://" + url[2:])
-
-                            # print(f"URL http://[{urls[0][2:]}]: {url_size}")
-
                 all_website_images.append(website_images)
-                # print(all_website_images)
                 count += 1
             except urllib.error.HTTPError as e:
                 print(e)
                 page_exists = False
-
-            # print(image_sizes_count)
         return all_website_images
 
     def fetch_louis_vuitton_pages(self, website):
@@ -209,8 +188,6 @@ class ImageWebScrapper:
                                 clean_url_images.append(url)
                 louis_vuitton_images_pages.append(clean_url_images)
                 count += 1
-
-            #     ------
             except urllib.error.HTTPError as e:
                 print(e)
                 page_dne = False
@@ -395,20 +372,6 @@ class ImageAnalysis:
         plt.title((name + ": RGB Scatter Plot"))
         # plt.show()
 
-    def show_image(self, image_path):
-        if image_path:
-            plt.figure(3)
-            # Assuming you have the path to the image file
-
-            # Read the image using `mpimg.imread()`
-            image = mpimg.imread(image_path)
-
-            # Display the image using `imshow()`
-            plt.imshow(image)
-
-            # Show the plot
-            plt.show()
-
     def file_to_image(self, file_path):
         with Image.open(file_path).convert('RGB') as image:
             return image
@@ -492,7 +455,6 @@ class Facade:
             most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
             length = len(most_common_colors)
             most_common_colors = most_common_colors.most_common(length)
-
 
             all_images_rgb_count += most_common_colors
 

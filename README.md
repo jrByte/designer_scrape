@@ -1,29 +1,33 @@
 # Designer Scrape
+## About
 
-## Summary
-I have been recently intrigued by the color usage on popular luxury brands. This allurement of these brands on our population could have intriguing insights, and large part of this is color. What can we learn from color usage in the most popular brands and could we apply this research in other fields? I wrote my dissertation on the luxury brands color usage and their potential brand strategy when it came to color. The code to analyze and understand the brands is here for display and is being continously improved. Feel free to suggest ideas or problems with the code. 
+Designer Scrape is a dynamic and user-friendly tool to analyze various luxury clothing brands. It was initially built 
+for my bachelor thesis to analyze the correlation of color usage of various high profile brands to gain insight and 
+better understanding of currently used color trends and combinations.The code is built to be dynamic and manageable in 
+various ways using the design pattern Facade. To maintain accurate and consistent results, only the front part of a 
+handbags have been analyzed.
 
-IMPORTANT: Please keep in mind, this code should only be used for ethical purposes and the webscrapping should be done in accordance with the company and region you are located in. Hint: Brands often display the terms in their ROBOT.txt. 
+## Key Features
+- Unique 3d graph: to visualize the trends and areas of avoidance for color in the collection of images.
+- Image Scrabble websites: Louis Vuitton and Chanel.
+- Color pallet analysis, conducted by comparing the calculated values of 
+- Utilization of K nearest neighbor machine learning algorithm to discover the most common colors in the image.
 
-## Installation
-Poetry was used as a package manager for this codebase. 
-Python 3.7 had the best compatibility with all the pacakges.
+## Getting Started
 
-## Selected Analysis
-For the most consistent results, handbags have been the only thing analyzed. This is because the porportions remain relativly the same and the view is the same within lots of brands. It is planned to enable other forms of object recognition to remove subjects and other items from different types of aperal items, so that they can be analyzed.
+Before you start, be sure to check the laws and regulations set in your region and the company you are scarping data from.
+Companies offer a endpoint 'robot.txt' to define the terms of service for web scrapping. 
 
-## Results
-Louis Vuitton scatterplot of collected RGB colors found in the handbag section:
+1. clone the repository to your local machine. (Both Windows or Mac operating system is fine)
+2. Install the required dependencies using 'poetry install' ensuring that Python 3.8 is used for the best compatibility. 
+3. Use the python environment created with the required dependencies to run the code.
+4. The 'Facade' class offers various methods to easily execute the systems required to make the analyses. 
 
-
-1st view:
-![Alt text](readme_images/rgb_scatter_plot_1.png?raw=true "Louis Vuitton image collection of handbag colors")
-
-2nd view:
-![Alt text](readme_images/rgb_scatter_plot_2.png?raw=true "Louis Vuitton image collection of handbag colors")
+## Louis Vuitton Analysis
+<img src="readme_images/louisvuitton.com-handbags_rgb_scatter_plot_1.png?raw=true" alt="1st View" width="600" height="500">
+<img src="readme_images/louisvuitton.com-handbags_rgb_scatter_plot_2.png?raw=true" alt="2nd View" width="600" height="500">
 
 
 ## Agenda
-- Build abnormality machine learning algorithms to detect ongoing changes and potential trend predictions.
-- Build a profile of most of the brands and compare how the current industry is utilizing colors in their products.
-- Build a machine learning alg. that can suggest color combinations based on one color input.
+- Build abnormality algorithms to detect ongoing changes and potential trend predictions.
+
