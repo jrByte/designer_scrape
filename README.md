@@ -24,8 +24,8 @@ Companies offer a endpoint 'robot.txt' to define the terms of service for web sc
 4. The 'Facade' class offers various methods to easily execute the systems required to make the analyses. 
 
 ## Louis Vuitton Analysis
-<img src="readme_images/louisvuitton.com-handbags_rgb_scatter_plot_1.png?raw=true" alt="1st View" width="600" height="500">
-<img src="readme_images/louisvuitton.com-handbags_rgb_scatter_plot_2.png?raw=true" alt="2nd View" width="600" height="500">
+![Alt Text](readme_images/louisvuitton.com-handbags_rgb_scatter_plot_1.png?raw=true)
+![Alt Text](readme_images/louisvuitton.com-handbags_rgb_scatter_plot_2.png?raw=true)
 
 
 ## Agenda
