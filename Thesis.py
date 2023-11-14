@@ -59,7 +59,6 @@ class ImageFileManager:
         with open(full_file_path, "w", newline="") as open_csv_file:
             wr = csv.DictWriter(open_csv_file, fieldnames=column_names)
             wr.writeheader()
-
             # Write the data rows
             for rgb, count in data:
                 red, green, blue = rgb
@@ -67,6 +66,15 @@ class ImageFileManager:
 
             open_csv_file.close()
         print(f"CSV data saved to {full_file_path}")
+
+    def read_csv_to_data(self, csv_name):
+        # TODO: Correct the structure the csv is saved to a python data type.
+        full_file_path = os.path.join(self.csv_directory, csv_name)
+        with open(full_file_path, mode='r') as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                print(row)
+        # return data
 
 
 class ImageWebScrapper:
@@ -418,7 +426,7 @@ class Facade:
         self.image_analysis = ImageAnalysis(self.directory, 0)
 
     def download_website(self, url, directory_special_name=""):
-        # Gets a list of image urls within the website.
+        # 1. checks if the domain name is one of the following within the code.
         domain = ('.'.join(urlparse(url).netloc.split('.')[-2:]))
 
         print(f"Scrapping {domain} for images.")
@@ -430,21 +438,35 @@ class Facade:
             print("Program has not been designed yet for this website.")
             return None
 
-        # Iterating through each page to download the image.
+        # 2. Downloads all the collected URLS and saves them in the
+        # images directories under the domain-name + special name.
         for page_count, page in enumerate(pages):
             print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
+    def analyze_from_csv(self, csv_name):
+        all_images_rgb_count = self.image_file_manager.read_csv_to_data(csv_name)
+        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, csv_name)
+
+    def singular_image_analysis(self, file_path, image_sensitivity=10):
+        image = self.image_analysis.file_to_image(file_path)
+        colors = self.image_analysis.image_main_colors(image)
+
+        # uses k-neareast neighbor machine learning algorithm to get the top colors.
+        most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
+        results = self.image_analysis.color_analysis(most_common_colors[0][0])
+        print(results)
+
     def analyze_all_images(self, analyze_directory, image_sensitivity=10, max=25):
-        # directory to analyze`
+        # 1. initialization of variables.
         global top_main_color
+        all_images_rgb_count = list()
+
+        # 2. gets the files list. Preparing for analysis...
         designer_dir = os.path.join(self.image_directory, analyze_directory)
         files = self.image_file_manager.get_files_list(designer_dir)
-        color_count_detection = Counter()
-        all_images_rgb_count = list()
-        top_10_colors = Counter()
-        total_pixels = 0
 
+        # 3. Iterating through each file and analysing its properties.
         for count, file in enumerate(files):
             print(f"\nAnalyzing file [{file}] {(count + 1)} out of {len(files)}")
             file_path = os.path.join(designer_dir, file)
@@ -452,100 +474,33 @@ class Facade:
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
 
+            # Uses k-neareast neighbor machine learning algorithm to get the top colors.
             most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
-            length = len(most_common_colors)
-            most_common_colors = most_common_colors.most_common(length)
-
             all_images_rgb_count += most_common_colors
 
-            for rgb, rgb_count in most_common_colors:
-                top_10_colors[rgb_count] = rgb
-                total_pixels += rgb_count
+            results = self.image_analysis.color_analysis(most_common_colors[0][0])
+            print(f"Calculated Color Scheme from {most_common_colors[0][0]}: {results}")
 
-            # analytics
-            main_color = most_common_colors
-            results = self.image_analysis.color_analysis(main_color[0][0])
+            if count <= 1:
+                break
 
-            print("\nSingle Image Data Analytics:")
-
-            noteable_values = []
-
-            most_common_colors.remove(main_color[0])
-
-            for image_top_colors in most_common_colors:
-                # print("-----------------------------")
-                # print("New top color compared: ", image_top_colors)
-
-                closest_distance = 25
-
-                for key, primary_analyzed_colors in results.items():
-                    # print(f"Data Analytics: {key}", end=" ")
-                    comparison = None
-                    d_from_color = None
-
-                    if len(primary_analyzed_colors) == 1 or type(primary_analyzed_colors) == tuple:
-
-                        top_main_color = image_top_colors[0]
-                        d_from_color = self.image_analysis.color_distance(top_main_color, primary_analyzed_colors)
-
-                        comparison = {"image_top_color": top_main_color,
-                                      "analyzed_color": primary_analyzed_colors,
-                                      "distance": d_from_color}
-
-                        # print(image_top_colors, " : ", primary_analyzed_colors, " distance: ", d, end=" ")
-
-                    else:
-                        for index, analyzed_color in enumerate(primary_analyzed_colors):
-                            d_from_color = self.image_analysis.color_distance(top_main_color, analyzed_color)
-                            comparison = {"image_top_color": top_main_color, "analyzed_color": analyzed_color,
-                                          "distance": d_from_color}
-                            # print(image_top_colors, " : ", analyzed_color, " distance: ", d, end=" ")
-
-                    if 0 < d_from_color <= max and (closest_distance <= d_from_color):
-                        noteable_values.append({key: comparison})
-                        closest_distance = d_from_color
-
-            for i in noteable_values:
-                for key in i.keys():
-                    color_count_detection[str(key)] += 1
-
-            if noteable_values:
-                print("Detected color schema:", noteable_values)
-
-            # if count <= 1:
-            #     break
-
-        print()
-        self.image_file_manager.save_data_to_csv(all_images_rgb_count, analyze_directory,
+        file_name = analyze_directory
+        self.image_file_manager.save_data_to_csv(all_images_rgb_count, file_name,
                                                  ["Red", "Green", "Blue", "Count"])
 
-        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, analyze_directory)
-        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, analyze_directory)
-        self.image_analysis.pie_chart(all_images_rgb_count, analyze_directory)
-
-        print("\nTotal Image Collection Analysis:")
-        total = len(files)
-        for color_scheme, count in color_count_detection.items():
-            print(f"{color_scheme}: {round((count / len(files)) * 100, 2)}% ({count} / {len(files)})")
-            total -= count
-
-        print(f"Remaining images with undetected color schemes: {round((total / len(files)) * 100, 2)}%")
-
-        print(top_10_colors.most_common(10))
-
-        for key, value in top_10_colors.most_common(10):
-            percent = round((int(key) / total_pixels), 2) * 100
-            print(f"{percent}% : {value}")
+        self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, file_name)
+        self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, file_name)
+        self.image_analysis.pie_chart(all_images_rgb_count, file_name)
 
 
 if __name__ == "__main__":
     facade = Facade()
 
-    # website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
-    # facade.download_website(website_url, directory_special_name="-handbags")
+    website_url = "https://eu.louisvuitton.com/eng-e1/women/handbags/all-handbags/_/N-tfr7qdp"
+    facade.download_website(website_url, directory_special_name="-handbags")
     # facade.analyze_all_images("louisvuitton.com-handbags")
 
-    website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
+    # website_url = "https://www.chanel.com/gb/fashion/handbags/c/1x1x1x4/hobo-bags/"
     # facade.download_website(website_url, directory_special_name="-handbags")
-    facade.analyze_all_images("chanel.com-handbags", image_sensitivity=3, max=25)
+    # facade.analyze_all_images("chanel.com-handbags", image_sensitivity=3, max=25)
     # facade.analyze_all_images("louisvuitton.com-handbags", image_sensitivity=3, max=25)
