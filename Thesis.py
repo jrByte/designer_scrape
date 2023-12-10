@@ -27,9 +27,7 @@ from PIL import Image
 import os
 import csv
 import requests
-import cv2
 from bs4 import BeautifulSoup
-import matplotlib.image as mpimg
 from collections import defaultdict, Counter
 import matplotlib.pyplot as plt
 from urllib.parse import urlparse
@@ -43,13 +41,9 @@ class ImageFileManager:
 
     def get_files_list(self, directory):
         print("Running get_files_list")
-        # print("Directory:", directory)
         files = list()
         if not os.path.isdir(directory):
             os.makedirs(directory)
-
-        print(directory, os.listdir(directory))
-
         for a in os.listdir(directory):
             files.append(a)
         return files
@@ -59,7 +53,6 @@ class ImageFileManager:
         with open(full_file_path, "w", newline="") as open_csv_file:
             wr = csv.DictWriter(open_csv_file, fieldnames=column_names)
             wr.writeheader()
-            # Write the data rows
             for rgb, count in data:
                 red, green, blue = rgb
                 wr.writerow({"Red": red, "Green": green, "Blue": blue, "Count": count})
@@ -417,18 +410,29 @@ class ImageAnalysis:
 
 class Facade:
     def __init__(self):
-        #       default variables
         self.directory = os.getcwd()
         self.image_directory = os.path.join(self.directory, "images")
-        #       calling necessary classes
         self.image_web_scrapper = ImageWebScrapper(self.directory, image_limit=1000, website_category_limit=30)
         self.image_file_manager = ImageFileManager(self.directory)
         self.image_analysis = ImageAnalysis(self.directory, 0)
 
-    def download_website(self, url, directory_special_name=""):
-        # 1. checks if the domain name is one of the following within the code.
-        domain = ('.'.join(urlparse(url).netloc.split('.')[-2:]))
+    def download_website(self, url, directory_special_name):
+        """
+        Downloads product images from a desired website endpoint.
 
+        Parameters
+        ----------
+        url : string
+            full url path to the desired webpages to be scraped.
+        directory_special_name: string
+            directory name for which the files should be saved to.
+
+        Returns
+        -------
+        bool
+            indicates if the operation was successful.
+        """
+        domain = ('.'.join(urlparse(url).netloc.split('.')[-2:]))
         print(f"Scrapping {domain} for images.")
         if domain == "louisvuitton.com":
             pages = self.image_web_scrapper.fetch_louis_vuitton_pages(url)
@@ -436,7 +440,7 @@ class Facade:
             pages = self.image_web_scrapper.fetch_chanel_pages(url)
         else:
             print("Program has not been designed yet for this website.")
-            return None
+            return False
 
         # 2. Downloads all the collected URLS and saves them in the
         # images directories under the domain-name + special name.
@@ -444,20 +448,54 @@ class Facade:
             print(f"[...]: Website [{domain}] :{page_count + 1} / {len(pages)}")
             self.image_web_scrapper.download_images(domain, page, directory_special_name, amount_of_pages=len(pages))
 
+        return True
+
     def analyze_from_csv(self, csv_name):
-        all_images_rgb_count = self.image_file_manager.read_csv_to_data(csv_name)
+        # TODO: read_csv_to_data function needs to return the array in the same format as when its saved.
+        all_images_rgb_count = None
+        # all_images_rgb_count = self.image_file_manager.read_csv_to_data(csv_name)
         self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, csv_name)
 
-    def singular_image_analysis(self, file_path, image_sensitivity=10):
+    def singular_image_analysis(self, file_path, k_image_sensitivity=10):
+        """
+        Analysis of a singular image.
+
+        Parameters
+        ----------
+        file_path : string
+            (required) the full path of the file.
+        k_image_sensitivity: int
+            (not required) defines the amount of neighbors for the k-nearest alg.
+        Returns
+        -------
+        result : formatted string
+            Describes the color pallets discovered.
+        """
+
         image = self.image_analysis.file_to_image(file_path)
         colors = self.image_analysis.image_main_colors(image)
 
-        # uses k-neareast neighbor machine learning algorithm to get the top colors.
-        most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
+        # uses k-nearest neighbor machine learning algorithm to get the top colors.
+        most_common_colors = self.image_analysis.find_common_colors(colors, k_image_sensitivity)
         results = self.image_analysis.color_analysis(most_common_colors[0][0])
-        print(results)
+        return f"Calculated Color Scheme from {most_common_colors[0][0]}: {results}"
 
-    def analyze_all_images(self, analyze_directory, image_sensitivity=10, max=25):
+    def analyze_all_images(self, analyze_directory, k_image_sensitivity=10):
+        """
+
+        Parameters
+        ----------
+        analyze_directory : string
+            (required) the full path to the directory for the images that are desired to be analyzed.
+        k_image_sensitivity : int
+            (not required) defines the amount of neighbors for the k-nearest alg.
+
+        Returns
+        -------
+        result : formatted string
+            Describes the color pallets discovered.
+        """
+
         # 1. initialization of variables.
         global top_main_color
         all_images_rgb_count = list()
@@ -474,15 +512,11 @@ class Facade:
             image = self.image_analysis.file_to_image(file_path)
             colors = self.image_analysis.image_main_colors(image)
 
-            # Uses k-neareast neighbor machine learning algorithm to get the top colors.
-            most_common_colors = self.image_analysis.find_common_colors(colors, image_sensitivity)
+            # 4. Uses k-nearest neighbor machine learning algorithm to get the top colors.
+            most_common_colors = self.image_analysis.find_common_colors(colors, k_image_sensitivity)
             all_images_rgb_count += most_common_colors
 
             results = self.image_analysis.color_analysis(most_common_colors[0][0])
-            print(f"Calculated Color Scheme from {most_common_colors[0][0]}: {results}")
-
-            if count <= 1:
-                break
 
         file_name = analyze_directory
         self.image_file_manager.save_data_to_csv(all_images_rgb_count, file_name,
@@ -491,6 +525,8 @@ class Facade:
         self.image_analysis.graph_3d_rgb_frequency(all_images_rgb_count, file_name)
         self.image_analysis.graph_rgb_spectrogram(all_images_rgb_count, file_name)
         self.image_analysis.pie_chart(all_images_rgb_count, file_name)
+
+        return f"Calculated Color Scheme from {most_common_colors[0][0]}: {results}"
 
 
 if __name__ == "__main__":
